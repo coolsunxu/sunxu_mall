@@ -3,8 +3,8 @@ server:
   port : 8080
 
 mybatis:
-  mapper-locations: classpath:mappers/*xml
-  type-aliases-package: com.example.mybatisdemo.pojo
+  mapper-locations: classpath:com/example/sunxu_mall/mapper/**/*.xml
+  type-aliases-package: com.example.sunxu_mall.entity
   configuration:
     map-underscore-to-camel-case: true
 
@@ -16,3 +16,37 @@ spring:
     url: jdbc:mysql://127.0.0.1:3306/mall?useUnicode=true&serverTimezone=UTC&characterEncoding=UTF-8
     username: root
     password: 123456
+  # 修复 Spring Boot 2.6.x 与 Swagger 兼容性问题
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+  web:
+    resources:
+      add-mappings: false
+
+# SpringDoc OpenAPI 配置
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+    operations-sorter: method
+
+# Redisson配置
+redisson:
+  filepath: "classpath:redisson.yaml"
+
+# 项目自定义配置
+mall:
+  mgt:
+    # 令牌配置
+    tokenSecret: Z8lR9m3sP5qX2yK7tW0vU4nA1eC6jH8bB5fD2zM9nL3xQ0pR7wV1gY4iJ7kT2oS5uN8cF1hE6oI9aM4dG0lB3rU5sP9vX2yK7tW0vU4nA1eC6jH8bB5fD2zM9nL3xQ0pR7wV1gY4iJ7kT2oS5uN8cF1hE6oI9aM4dG0lB3rU5sP9vX2yK7tW0vU4nA1eC6jH8bB5fD2zM9nL3xQ0pR7wV1gY4iJ7kT2oS
+    tokenExpireTimeInRecord: 3600
+    # 验证码过期时间（秒）
+    captchaExpireSecond: 300
+    # 密码加密私钥
+    password:
+      privateKey: MIICdgIBADANBgkqhkiG9w0BAQEFAASCAmAwggJcAgEAAoGBALVoEKxWFMSIDKcg67s967qolmDwcGZN1Fa1vV6PMzNNAMCWNB9CxLBbOCnWCF7AZ1aCZ+o/cHAEUw7RwiOsmK2cObckDZIDONye8mfeOaCB43oRJuRa2ArZZiwU7ulNVlfdT7cQqgb15BvHuqQDDFtxQn6Lj/Kgw119MST7x039AgMBAAECgYAEl5TMeAVgkD0ZwfiVrdSYzgm4fH2r6U51v3YCvcdDBjD9rw+0tuD5weVjEbr2gxJam0R8Joz3GPTtTBwJASaAO4WI3peXvP83tr0NgpDV6ZwQFnoGX5CkDtKJAOkhCmUx+MGil1qVWB2SurNa1k0Y8mjKpTjNOz1erd3CWnFx1QJBALdVod7KZlsb/F191iB+bVdcBn8FgUaFIL4CcWHhHc1vZ/3en0EVh8hQDnRFBzBxYPjdJad5W5SGOE2EJv4YjlMCQQD9Ts4dOY1l67IfspBBxGJ4dZkjoI+8+3qfsiVCO6Hoy+BLhPIBtC1JNmjxnS/u2quKLo8NOFBeFaeKpqGutQhvAkAg1guJ9cJjax3GOPWTGFHJJchcE8ZVtR5qKdHY8BMAaoW7qJXpeEu7iusr0/k3qfbuW92Uo13NukR3TcYWGJvVAkEApScBOYqxhxcR7pq0dTy+Wv2JV/IyZSutOnui0TkiCi8K0RIf2z6HHCnOaGFsxBVsLE7I0/y4YW9K6hpUZh0AHwJAYXdPW1fF4YB8FAsX/h3AJxzB7gzfh1TC9AFqHMSwkaLRIROhNZCmBu0zZ7Q3iC/T558zqBotrhzZHrJyZM3gTg==
+      publicKey: MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQC1aBCsVhTEiAynIOu7Peu6qJZg8HBmTdRWtb1ejzMzTQDAljQfQsSwWzgp1ghewGdWgmfqP3BwBFMO0cIjrJitnDm3JA2SAzjcnvJn3jmggeN6ESbkWtgK2WYsFO7pTVZX3U+3EKoG9eQbx7qkAwxbcUJ+i4/yoMNdfTEk+8dN/QIDAQAB
+

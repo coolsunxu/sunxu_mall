@@ -4,6 +4,25 @@ target/
 !**/src/main/**/target/
 !**/src/test/**/target/
 
+### Logs ###
+logs/
+*.log
+.log
+*.lck
+
+### Dependencies ###
+.gradle/
+.m2/
+
+### OS Files ###
+.DS_Store
+Thumbs.db
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+
 ### STS ###
 .apt_generated
 .classpath
@@ -18,6 +37,8 @@ target/
 *.iws
 *.iml
 *.ipr
+out/
+build/
 
 ### NetBeans ###
 /nbproject/private/
@@ -31,3 +52,39 @@ build/
 
 ### VS Code ###
 .vscode/
+*.code-workspace
+
+### Temporary Files ###
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+### Environment Files ###
+.env
+.env.local
+.env.*.local
+
+### Database ###
+*.db
+*.sqlite
+*.sqlite3
+
+### Maven ###
+.mvn/target/
+
+### Testing ###
+*.coverage
+.coverage
+.coverage.*
+coverage.xml
+pytest_cache/
+
+### Misc ###
+*.pid
+*.seed
+*.pid.lock
+.cache/
+.trae/
+

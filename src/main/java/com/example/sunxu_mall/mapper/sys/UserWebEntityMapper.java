@@ -96,4 +96,11 @@ public interface UserWebEntityMapper {
      * @mbggenerated
      */
     int updateByPrimaryKey(UserWebEntity record);
+
+    /**
+     * 根据username 查询用户信息
+     * @param userName 用户名
+     * @return 返回具体的用户信息
+     */
+    UserWebEntity findByUserName(@Param("userName") String userName);
 }

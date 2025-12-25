@@ -1,0 +1,13 @@
+# Redisson配置文件
+singleServerConfig:
+  address: "redis://127.0.0.1:6379"
+  connectTimeout: 10000
+  connectionMinimumIdleSize: 10
+  connectionPoolSize: 64
+  database: 5
+  dnsMonitoringInterval: 5000
+  idleConnectionTimeout: 10000
+  timeout: 3000
+  retryAttempts: 3
+  retryInterval: 1500
+  pingConnectionInterval: 10000
