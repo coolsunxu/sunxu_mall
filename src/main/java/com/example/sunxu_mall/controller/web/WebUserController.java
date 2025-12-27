@@ -3,6 +3,7 @@ package com.example.sunxu_mall.controller.web;
 import com.example.sunxu_mall.annotation.NoLogin;
 import com.example.sunxu_mall.entity.auth.AuthUserEntity;
 import com.example.sunxu_mall.entity.auth.CaptchaEntity;
+import com.example.sunxu_mall.entity.auth.JwtUserEntity;
 import com.example.sunxu_mall.entity.auth.TokenEntity;
 import com.example.sunxu_mall.entity.sys.web.UserWebEntity;
 import com.example.sunxu_mall.service.sys.UserService;
@@ -32,7 +33,7 @@ public class WebUserController {
      * @return User information
      */
     @GetMapping(value = "/info")
-    public UserWebEntity getUserInfo() {
+    public JwtUserEntity getUserInfo() {
         return userService.getUserInfo();
     }
 

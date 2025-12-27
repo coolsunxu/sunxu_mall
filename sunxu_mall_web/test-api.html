@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API测试页面</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <h1>API测试页面</h1>
+    
+    <h2>登录测试</h2>
+    <div>
+        <label for="username">用户名:</label>
+        <input type="text" id="username" value="admin">
+    </div>
+    <div>
+        <label for="password">密码:</label>
+        <input type="password" id="password" value="123456">
+    </div>
+    <button onclick="testLogin()">测试登录</button>
+    
+    <h2>菜单测试</h2>
+    <button onclick="testMenu()">测试菜单接口</button>
+    
+    <h2>测试结果</h2>
+    <pre id="result"></pre>
+    
+    <script>
+        // 配置axios
+        const api = axios.create({
+            baseURL: 'http://localhost:8011/v1',
+            timeout: 10000
+        });
+        
+        // 添加请求拦截器
+        api.interceptors.request.use(
+            config => {
+                console.log('请求拦截器:', config);
+                const token = localStorage.getItem('token');
+                if (token) {
+                    config.headers.Authorization = `Bearer ${token}`;
+                }
+                return config;
+            },
+            error => {
+                console.error('请求错误:', error);
+                return Promise.reject(error);
+            }
+        );
+        
+        // 添加响应拦截器
+        api.interceptors.response.use(
+            response => {
+                console.log('响应拦截器:', response);
+                return response.data;
+            },
+            error => {
+                console.error('响应错误:', error);
+                return Promise.reject(error);
+            }
+        );
+        
+        // 测试登录
+        async function testLogin() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '登录测试开始...';
+            
+            try {
+                const username = document.getElementById('username').value;
+                const password = document.getElementById('password').value;
+                
+                const response = await api.post('/web/user/login', {
+                    username: username,
+                    password: password
+                });
+                
+                resultDiv.innerHTML = '登录成功: ' + JSON.stringify(response, null, 2);
+                localStorage.setItem('token', response.token);
+            } catch (error) {
+                resultDiv.innerHTML = '登录失败: ' + JSON.stringify(error, null, 2);
+            }
+        }
+        
+        // 测试菜单接口
+        async function testMenu() {
+            const resultDiv = document.getElementById('result');
+            resultDiv.innerHTML = '菜单测试开始...';
+            
+            try {
+                const response = await api.get('/menu/getMenuTree');
+                resultDiv.innerHTML = '菜单获取成功: ' + JSON.stringify(response, null, 2);
+            } catch (error) {
+                resultDiv.innerHTML = '菜单获取失败: ' + JSON.stringify(error, null, 2);
+            }
+        }
+        
+        // 页面加载时输出基本信息
+        console.log('API测试页面加载完成');
+        console.log('axios版本:', axios.version);
+    </script>
+</body>
+</html>

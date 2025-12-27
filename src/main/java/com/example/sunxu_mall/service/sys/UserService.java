@@ -21,6 +21,7 @@ import org.springframework.security.core.Authentication;
 import com.wf.captcha.SpecCaptcha;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -38,6 +39,7 @@ public class UserService {
     private final PasswordUtil passwordUtil;
     private final AuthenticationManager authenticationManager;
     private final TokenHelper tokenHelper;
+    private final UserDetailsService userDetailsService;
 
     @Value("${mall.mgt.tokenExpireTimeInRecord}")
     private int tokenExpireTimeInRecord;
@@ -51,18 +53,19 @@ public class UserService {
             RedisUtil redisUtil,
             PasswordUtil passwordUtil,
             AuthenticationManager authenticationManager,
-            TokenHelper tokenHelper
+            TokenHelper tokenHelper, UserDetailsService userDetailsService
     ) {
         this.userMapper = userMapper;
         this.redisUtil = redisUtil;
         this.passwordUtil = passwordUtil;
         this.authenticationManager = authenticationManager;
         this.tokenHelper = tokenHelper;
+        this.userDetailsService = userDetailsService;
     }
 
-    public UserWebEntity getUserInfo() {
-        UserWebEntity rs = userMapper.selectByPrimaryKey(13L);
-        return rs;
+    public JwtUserEntity getUserInfo() {
+        String currentUsername = tokenHelper.getCurrentUsername();
+        return (JwtUserEntity) userDetailsService.loadUserByUsername(currentUsername);
     }
 
     /**
@@ -92,6 +95,8 @@ public class UserService {
                     new UsernamePasswordAuthenticationToken(authUserEntity.getUsername(), decodePassword);
             Authentication authentication = authenticationManager.authenticate(authenticationToken);
             SecurityContextHolder.getContext().setAuthentication(authentication);
+            log.info("get a authentication: {}", authentication);
+            log.info("get a principal: {}", authentication.getPrincipal());
             JwtUserEntity jwtUserEntity = (JwtUserEntity) (authentication.getPrincipal());
             UserWebEntity userEntity = userMapper.findByUserName(jwtUserEntity.getUsername());
 
@@ -102,7 +107,8 @@ public class UserService {
             String token = tokenHelper.generateToken(jwtUserEntity);
             redisUtil.delete(redisKey);
             List<String> roles = jwtUserEntity.getAuthorities().stream()
-                    .map(SimpleGrantedAuthority::getAuthority).collect(Collectors.toList());
+                    .map(SimpleGrantedAuthority::getAuthority)
+                    .collect(Collectors.toList());
 
             return new TokenEntity(jwtUserEntity.getUsername(), token, roles, tokenExpireTimeInRecord);
         } catch (BusinessException e) {

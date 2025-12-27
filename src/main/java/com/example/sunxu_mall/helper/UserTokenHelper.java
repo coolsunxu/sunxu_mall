@@ -1,16 +1,13 @@
 package com.example.sunxu_mall.helper;
 
+import com.example.sunxu_mall.errorcode.ErrorCode;
 import com.example.sunxu_mall.exception.BusinessException;
 import com.example.sunxu_mall.util.RedisUtil;
-import io.jsonwebtoken.SignatureAlgorithm;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import lombok.Getter;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 import java.security.Key;
@@ -107,9 +104,15 @@ public class UserTokenHelper {
                     .build()
                     .parseClaimsJws(token)
                     .getBody();
+        } catch (ExpiredJwtException e) {
+            log.info("Token expired:", e);
+            throw new BusinessException(ErrorCode.EXPIRED_TOKEN.getCode(), ErrorCode.EXPIRED_TOKEN.getMessage());
+        } catch (MalformedJwtException | SignatureException | InvalidClaimException e) {
+            log.info("Invalid token:", e);
+            throw new BusinessException(ErrorCode.INVALID_TOKEN.getCode(), ErrorCode.INVALID_TOKEN.getMessage());
         } catch (Exception e) {
             log.info("Failed to get Claims:", e);
-            throw new BusinessException(HttpStatus.FORBIDDEN.value(), "Please login first");
+            throw new BusinessException(ErrorCode.UNAUTHORIZED.getCode(), ErrorCode.UNAUTHORIZED.getMessage());
         }
         return claims;
     }

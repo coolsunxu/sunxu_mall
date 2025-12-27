@@ -3,11 +3,20 @@ package com.example.sunxu_mall.helper;
 import cn.hutool.json.JSONUtil;
 import com.alibaba.fastjson.JSON;
 import com.example.sunxu_mall.entity.auth.JwtUserEntity;
+import com.example.sunxu_mall.exception.BusinessException;
 import com.example.sunxu_mall.util.RedisUtil;
+import com.example.sunxu_mall.util.SpringBeanUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
+
+import java.util.Objects;
+
+import static com.example.sunxu_mall.errorcode.ErrorCode.PERMISSION_DENIED;
 
 /**
  * @author sunxu
@@ -24,11 +33,8 @@ public class TokenHelper extends UserTokenHelper {
     private static final String TOKEN_PREFIX = "token:";
     private static final String USER_PREFIX = "user:";
 
-
-    private final RedisUtil redisUtil;
-
     public TokenHelper(RedisUtil redisUtil) {
-        this.redisUtil = redisUtil;
+        super(redisUtil);
     }
 
 
@@ -50,13 +56,23 @@ public class TokenHelper extends UserTokenHelper {
      * @return 用户详情
      */
     public UserDetails getUserDetailsFromUsername(String username) {
+        // 先尝试从 Redis 中获取用户信息
         String userKey = getUserKey(username);
         String userDetailJson = redisUtil.get(userKey);
-        if (!StringUtils.hasLength(userDetailJson)) {
-            return null;
+
+        if (StringUtils.hasLength(userDetailJson)) {
+            try {
+                // 如果 Redis 中有数据，解析为 JwtUserEntity
+                return JSON.parseObject(userDetailJson, JwtUserEntity.class);
+            } catch (Exception e) {
+                log.warn("Failed to parse user details from Redis for user: {}, error: {}", username, e.getMessage());
+                // 如果解析失败，回退到从数据库加载
+                return loadUserDetailsByUsername(username);
+            }
         }
 
-        return JSON.parseObject(userDetailJson, JwtUserEntity.class);
+        // 如果 Redis 中没有数据，从数据库加载
+        return loadUserDetailsByUsername(username);
     }
 
 
@@ -90,5 +106,51 @@ public class TokenHelper extends UserTokenHelper {
     public UserDetails getUserDetails(String username) {
         String userJson = redisUtil.get(getKey(USER_PREFIX, username));
         return JSONUtil.toBean(userJson, UserDetails.class);
+    }
+
+    /**
+     * 从数据库加载用户详情信息
+     *
+     * @param username 用户名称
+     * @return 用户详情
+     */
+    private UserDetails loadUserDetailsByUsername(String username) {
+        try {
+            // 注入 UserDetailsService 来加载用户信息
+            UserDetailsService userDetailsService = SpringBeanUtil.getBean("userDetailsService");
+            if (userDetailsService != null) {
+                return userDetailsService.loadUserByUsername(username);
+            }
+            log.warn("UserDetailsService bean not found");
+            return null;
+        } catch (Exception e) {
+            log.error("Failed to load user details for user: {}", username, e);
+            return null;
+        }
+    }
+
+    /**
+     * 获取当前登录的用户名称
+     *
+     * @return 用户名称
+     */
+    public String getCurrentUsername() {
+        final Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (Objects.isNull(authentication)) {
+            log.warn("get a null authentication");
+            throw new BusinessException(PERMISSION_DENIED.getCode(), "permission denied");
+        }
+
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof UserDetails) {
+            // 如果是UserDetails对象，直接获取用户名
+            return ((UserDetails) principal).getUsername();
+        } else if (principal instanceof String) {
+            // 如果是字符串，直接返回（可能是用户名）
+            return (String) principal;
+        } else {
+            log.warn("Unsupported principal type: {}", principal.getClass().getName());
+            throw new BusinessException(PERMISSION_DENIED.getCode(), "Unsupported principal type");
+        }
     }
 }

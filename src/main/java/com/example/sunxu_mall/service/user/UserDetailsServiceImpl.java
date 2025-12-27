@@ -1,23 +1,22 @@
 package com.example.sunxu_mall.service.user;
 
-import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.example.sunxu_mall.entity.auth.JwtUserEntity;
-import com.example.sunxu_mall.entity.sys.MenuEntity;
-import com.example.sunxu_mall.entity.sys.RoleEntity;
 import com.example.sunxu_mall.entity.sys.web.UserWebEntity;
-import com.example.sunxu_mall.mapper.sys.MenuEntityMapper;
-import com.example.sunxu_mall.mapper.sys.RoleEntityMapper;
+import com.example.sunxu_mall.exception.BusinessException;
 import com.example.sunxu_mall.mapper.sys.UserWebEntityMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
-import org.springframework.util.StringUtils;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
+
+import static com.example.sunxu_mall.errorcode.ErrorCode.USER_NOT_EXIST;
 
 /**
  * @author sunxu
@@ -43,7 +42,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         UserWebEntity userEntity = userMapper.findByUserName(username);
         if (Objects.isNull(userEntity)) {
-            return null;
+            throw new BusinessException(USER_NOT_EXIST.getCode(),"User not found");
         }
 
         List<SimpleGrantedAuthority> authorities = new ArrayList<>(Collections.singleton(new SimpleGrantedAuthority("ROLE_USER")));

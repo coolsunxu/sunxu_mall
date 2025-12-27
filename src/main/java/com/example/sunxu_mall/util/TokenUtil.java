@@ -14,18 +14,18 @@ import javax.servlet.http.HttpServletRequest;
 
 public abstract class TokenUtil {
 
-    private static final String AUTHORIZATION_PREFIX = "Basic";
-    private static final String AUTHORIZATION_SEPARATE = "@";
+    private static final String AUTHORIZATION_PREFIX = "Bearer";
+    private static final String AUTHORIZATION_SEPARATE = " ";
 
 
     private TokenUtil() {
     }
 
     /**
-     * 从authorization中解析token
+     * 从 authorization中解析token
      * <p>
      * authorization字符串是下面这样的：
-     * Basic eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJzdXNhbiIsImV4cCI6MTcwNTAzOTA3N30.DZV6CZYGla74CZaXU1sqnX9R_x5YxfTM-DWObURn3Uhr1E88XsOxOz8F_MDfh8AaVFm87zlGXAENC8soZNz0Qw
+     * Bearer eyJhbGciOiJIUzUxMiJ9.eyJzdWIiOiJzdXNhbiIsImV4cCI6MTcwNTAzOTA3N30.DZV6CZYGla74CZaXU1sqnX9R_x5YxfTM-DWObURn3Uhr1E88XsOxOz8F_MDfh8AaVFm87zlGXAENC8soZNz0Qw
      *
      * @param request 用户请求
      * @return token

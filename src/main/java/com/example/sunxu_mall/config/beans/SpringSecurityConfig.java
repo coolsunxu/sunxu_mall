@@ -119,6 +119,9 @@ public class SpringSecurityConfig implements ApplicationContextAware {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         initNoLogin(applicationContext);
         return http
+                // 启用CORS
+                .cors()
+                .and()
                 // 禁用 CSRF
                 .csrf().disable()
                 // 授权异常
@@ -157,7 +160,7 @@ public class SpringSecurityConfig implements ApplicationContextAware {
                 .antMatchers("/*/api-docs").permitAll()
                 .antMatchers("/avatar/**").permitAll()
                 .antMatchers("/druid/**").permitAll()
-                // 放行OPTIONS请求
+                // 放行 OPTIONS请求
                 .antMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .antMatchers(NoLoginMap.getNoLoginUrlSet().toArray(new String[0])).permitAll()
                 // 所有请求都需要认证
