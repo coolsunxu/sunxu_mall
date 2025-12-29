@@ -25,10 +25,25 @@ export const useUserStore = defineStore('user', () => {
     }
   }
   
-  const logout = () => {
-    token.value = ''
-    userInfo.value = null
-    localStorage.removeItem('token')
+  const logout = async (): Promise<void> => {
+    console.log('用户状态管理：开始退出登录')
+    
+    try {
+      // 调用后端logout接口
+      if (token.value) {
+        await request.post('/web/user/logout')
+        console.log('用户状态管理：后端退出登录成功')
+      }
+    } catch (error) {
+      // 即使后端调用失败（如token已失效），也要继续清除本地状态
+      console.warn('用户状态管理：后端退出登录失败，但仍将清除本地状态', error)
+    } finally {
+      // 清除本地状态
+      token.value = ''
+      userInfo.value = null
+      localStorage.removeItem('token')
+      console.log('用户状态管理：本地状态已清除')
+    }
   }
   
   const checkLoginStatus = async () => {

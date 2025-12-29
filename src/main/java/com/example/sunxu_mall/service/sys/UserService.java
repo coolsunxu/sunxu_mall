@@ -12,6 +12,7 @@ import com.example.sunxu_mall.helper.TokenHelper;
 import com.example.sunxu_mall.mapper.sys.UserWebEntityMapper;
 import com.example.sunxu_mall.util.PasswordUtil;
 import com.example.sunxu_mall.util.RedisUtil;
+import com.example.sunxu_mall.util.TokenUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
@@ -24,6 +25,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Service;
 
+import javax.servlet.http.HttpServletRequest;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -66,6 +68,23 @@ public class UserService {
     public JwtUserEntity getUserInfo() {
         String currentUsername = tokenHelper.getCurrentUsername();
         return (JwtUserEntity) userDetailsService.loadUserByUsername(currentUsername);
+    }
+
+    /**
+     * User logout
+     *
+     * @param request 请求
+     */
+    public void logout(HttpServletRequest request) {
+        log.info("logout begin");
+
+        String token = TokenUtil.getTokenForAuthorization(request);
+        if (StringUtils.isEmpty(token)) {
+           throw new BusinessException(UNAUTHORIZED.getCode(), UNAUTHORIZED.getMessage());
+        }
+
+        tokenHelper.delToken(token);
+        log.info("logout end");
     }
 
     /**

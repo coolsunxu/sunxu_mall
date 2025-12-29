@@ -88,3 +88,4 @@ pytest_cache/
 .cache/
 .trae/
 
+sunxu_mall_web/node_modules/
