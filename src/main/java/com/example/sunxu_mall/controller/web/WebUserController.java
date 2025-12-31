@@ -42,6 +42,7 @@ public class WebUserController {
      * User phone login
      *
      * @param authUserEntity User entity
+     * @param request HttpServletRequest
      * @return Affected rows
      */
     @NoLogin

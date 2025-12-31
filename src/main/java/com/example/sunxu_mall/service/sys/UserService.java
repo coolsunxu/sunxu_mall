@@ -2,6 +2,7 @@ package com.example.sunxu_mall.service.sys;
 
 
 import cn.hutool.core.util.IdUtil;
+import com.example.sunxu_mall.dto.ip.IpCityDTO;
 import com.example.sunxu_mall.entity.auth.AuthUserEntity;
 import com.example.sunxu_mall.entity.auth.CaptchaEntity;
 import com.example.sunxu_mall.entity.auth.JwtUserEntity;
@@ -10,6 +11,8 @@ import com.example.sunxu_mall.entity.sys.web.UserWebEntity;
 import com.example.sunxu_mall.exception.BusinessException;
 import com.example.sunxu_mall.helper.TokenHelper;
 import com.example.sunxu_mall.mapper.sys.UserWebEntityMapper;
+import com.example.sunxu_mall.service.IpCityService;
+import com.example.sunxu_mall.util.HttpUtil;
 import com.example.sunxu_mall.util.PasswordUtil;
 import com.example.sunxu_mall.util.RedisUtil;
 import com.example.sunxu_mall.util.TokenUtil;
@@ -24,6 +27,8 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Service;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.List;
@@ -42,6 +47,7 @@ public class UserService {
     private final AuthenticationManager authenticationManager;
     private final TokenHelper tokenHelper;
     private final UserDetailsService userDetailsService;
+    private final IpCityService ipCityService;
 
     @Value("${mall.mgt.tokenExpireTimeInRecord}")
     private int tokenExpireTimeInRecord;
@@ -55,7 +61,9 @@ public class UserService {
             RedisUtil redisUtil,
             PasswordUtil passwordUtil,
             AuthenticationManager authenticationManager,
-            TokenHelper tokenHelper, UserDetailsService userDetailsService
+            TokenHelper tokenHelper,
+            UserDetailsService userDetailsService,
+            IpCityService ipCityService
     ) {
         this.userMapper = userMapper;
         this.redisUtil = redisUtil;
@@ -63,6 +71,7 @@ public class UserService {
         this.authenticationManager = authenticationManager;
         this.tokenHelper = tokenHelper;
         this.userDetailsService = userDetailsService;
+        this.ipCityService = ipCityService;
     }
 
     public JwtUserEntity getUserInfo() {
@@ -86,7 +95,7 @@ public class UserService {
         tokenHelper.delToken(token);
         log.info("logout end");
     }
-
+    
     /**
      * User login
      *
@@ -110,18 +119,22 @@ public class UserService {
         try {
             // 解码密码
             String decodePassword = passwordUtil.decodeRsaPassword(authUserEntity);
-            UsernamePasswordAuthenticationToken authenticationToken =
+            UsernamePasswordAuthenticationToken authenticationToken = 
                     new UsernamePasswordAuthenticationToken(authUserEntity.getUsername(), decodePassword);
             Authentication authentication = authenticationManager.authenticate(authenticationToken);
             SecurityContextHolder.getContext().setAuthentication(authentication);
-            log.info("get a authentication: {}", authentication);
-            log.info("get a principal: {}", authentication.getPrincipal());
             JwtUserEntity jwtUserEntity = (JwtUserEntity) (authentication.getPrincipal());
             UserWebEntity userEntity = userMapper.findByUserName(jwtUserEntity.getUsername());
 
             if (Objects.isNull(userEntity)) {
                 throw new BusinessException(USER_NOT_EXIST.getCode(), USER_NOT_EXIST.getMessage());
             }
+            
+            // 获取客户端IP地址并查询城市信息
+            HttpServletRequest request = ((ServletRequestAttributes) Objects.requireNonNull(RequestContextHolder.getRequestAttributes())).getRequest();
+            String clientIp = HttpUtil.getClientIp(request);
+            IpCityDTO ipCityDTO = ipCityService.getCityByIp(clientIp);
+            log.info("User login from IP: {}, City: {}, Province: {}", clientIp, ipCityDTO.getCity(), ipCityDTO.getProvince());
             
             String token = tokenHelper.generateToken(jwtUserEntity);
             redisUtil.delete(redisKey);

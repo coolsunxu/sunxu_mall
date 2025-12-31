@@ -2,7 +2,7 @@ package com.example.sunxu_mall.config.beans;
 
 
 import com.example.sunxu_mall.annotation.NoLogin;
-import com.example.sunxu_mall.config.props.JwtTokenConfigurer;
+import com.example.sunxu_mall.config.props.JwtTokenConfig;
 import com.example.sunxu_mall.service.user.UserDetailsServiceImpl;
 import com.example.sunxu_mall.util.NoLoginMap;
 import lombok.NonNull;
@@ -165,7 +165,7 @@ public class SpringSecurityConfig implements ApplicationContextAware {
                 .antMatchers(NoLoginMap.getNoLoginUrlSet().toArray(new String[0])).permitAll()
                 // 所有请求都需要认证
                 .anyRequest().authenticated()
-                .and().apply(new JwtTokenConfigurer())
+                .and().apply(new JwtTokenConfig())
                 .and()
                 .build();
     }

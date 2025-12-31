@@ -115,3 +115,9 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+### Configuration Secrets ###
+application-secret.yaml
+application-secret.yml
+src/main/resources/application-secret.yaml
+src/main/resources/application-secret.yml
