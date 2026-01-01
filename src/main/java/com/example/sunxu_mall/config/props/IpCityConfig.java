@@ -15,11 +15,6 @@ import org.springframework.stereotype.Component;
 public class IpCityConfig {
 
     /**
-     * Default query type: amap or geolite2
-     */
-    private String defaultType;
-
-    /**
      * Amap API configuration
      */
     private Amap amap = new Amap();
@@ -28,6 +23,11 @@ public class IpCityConfig {
      * GeoLite2 configuration
      */
     private Geolite2 geolite2 = new Geolite2();
+
+    /**
+     * Cache configuration
+     */
+    private Cache cache = new Cache();
 
     @Data
     public static class Amap {
@@ -44,6 +44,10 @@ public class IpCityConfig {
 
     @Data
     public static class Geolite2 {
+        /**
+         * Local database path (e.g., classpath:geoip/GeoLite2-City.mmdb)
+         */
+        private String dbPath;
 
         /**
          * Account ID for MaxMind GeoLite2 API
@@ -59,5 +63,23 @@ public class IpCityConfig {
          * API base URL
          */
         private String url;
+    }
+
+    @Data
+    public static class Cache {
+        /**
+         * L1 Caffeine cache TTL in seconds (default 3600)
+         */
+        private long caffeineTtlSeconds = 3600;
+
+        /**
+         * L1 Caffeine cache max size (default 10000)
+         */
+        private long caffeineMaxSize = 10000;
+
+        /**
+         * L2 Redis cache TTL in seconds (default 86400)
+         */
+        private long redisTtlSeconds = 86400;
     }
 }

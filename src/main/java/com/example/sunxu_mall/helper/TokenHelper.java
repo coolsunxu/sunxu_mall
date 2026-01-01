@@ -3,6 +3,7 @@ package com.example.sunxu_mall.helper;
 import cn.hutool.json.JSONUtil;
 import com.alibaba.fastjson.JSON;
 import com.example.sunxu_mall.entity.auth.JwtUserEntity;
+import com.example.sunxu_mall.errorcode.ErrorCode;
 import com.example.sunxu_mall.exception.BusinessException;
 import com.example.sunxu_mall.util.RedisUtil;
 import com.example.sunxu_mall.util.SpringBeanUtil;
@@ -125,7 +126,7 @@ public class TokenHelper extends UserTokenHelper {
             return null;
         } catch (Exception e) {
             log.error("Failed to load user details for user: {}", username, e);
-            return null;
+            throw new BusinessException(ErrorCode.OPERATION_FAILED.getCode(), "Failed to load user details: " + e.getMessage());
         }
     }
 
@@ -149,8 +150,8 @@ public class TokenHelper extends UserTokenHelper {
             // 如果是字符串，直接返回（可能是用户名）
             return (String) principal;
         } else {
-            log.warn("Unsupported principal type: {}", principal.getClass().getName());
-            throw new BusinessException(PERMISSION_DENIED.getCode(), "Unsupported principal type");
+            log.warn("Unsupported principal type: {}, permission denied", principal.getClass().getName());
+            throw new BusinessException(PERMISSION_DENIED.getCode(), "Unsupported principal type: " + principal.getClass().getName());
         }
     }
 }

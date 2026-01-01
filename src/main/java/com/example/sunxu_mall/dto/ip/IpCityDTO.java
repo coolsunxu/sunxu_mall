@@ -19,6 +19,11 @@ public class IpCityDTO {
      * IP地址
      */
     private String ip;
+
+    /**
+     * 国家
+     */
+    private String country;
     
     /**
      * 省份

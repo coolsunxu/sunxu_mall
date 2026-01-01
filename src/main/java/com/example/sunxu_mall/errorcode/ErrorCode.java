@@ -43,7 +43,14 @@ public enum ErrorCode {
     DATABASE_CONNECTION_ERROR(50003, "Database Connection Error", 500),
     DATABASE_EXECUTION_ERROR(50004, "SQL Execution Error", 500),
     DATA_INTEGRITY_VIOLATION(50005, "Data Integrity Violation", 500),
-    DUPLICATE_KEY_ERROR(50006, "Duplicate Key Error", 500);
+    DUPLICATE_KEY_ERROR(50006, "Duplicate Key Error", 500),
+    
+    // ====================================== Configuration Errors ======================================
+    CONFIG_ERROR(50007, "Configuration Error", 500),
+    CONFIG_MISSING(50008, "Missing Required Configuration", 500),
+    
+    // ====================================== Service Operation Errors ======================================
+    THIRD_PARTY_API_ERROR(50009, "Third-party API Call Failed", 500);
     
     // Error code
     private final int code;

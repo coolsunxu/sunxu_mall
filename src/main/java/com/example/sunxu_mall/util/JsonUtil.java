@@ -21,4 +21,8 @@ public class JsonUtil {
         return MAPPER.readValue(json, clazz);
     }
 
+    public static String toJson(Object object) throws IOException {
+        return MAPPER.writeValueAsString(object);
+    }
+
 }

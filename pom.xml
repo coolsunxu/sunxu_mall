@@ -162,6 +162,19 @@
             <version>0.2.0</version>
             <scope>provided</scope>
         </dependency>
+
+        <!-- Caffeine 本地缓存 -->
+        <dependency>
+            <groupId>com.github.ben-manes.caffeine</groupId>
+            <artifactId>caffeine</artifactId>
+        </dependency>
+
+        <!-- MaxMind GeoIP2 离线库读取 -->
+        <dependency>
+            <groupId>com.maxmind.geoip2</groupId>
+            <artifactId>geoip2</artifactId>
+            <version>2.16.1</version>
+        </dependency>
     </dependencies>
     <dependencyManagement>
         <dependencies>

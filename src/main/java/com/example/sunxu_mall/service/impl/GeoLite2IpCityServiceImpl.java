@@ -6,6 +6,8 @@ import com.example.sunxu_mall.dto.ip.IpCityDTO;
 import com.example.sunxu_mall.mapper.IpCityMapper;
 import com.example.sunxu_mall.service.IpCityService;
 import com.example.sunxu_mall.util.JsonUtil;
+import com.example.sunxu_mall.errorcode.ErrorCode;
+import com.example.sunxu_mall.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
@@ -24,8 +26,7 @@ import java.util.Objects;
  * @author sunxu
  */
 @Slf4j
-@Service
-@ConditionalOnProperty(name = "mall.mgt.ip-city.default-type", havingValue = "geolite2")
+@Service("geoLite2IpCityApiService")
 @RequiredArgsConstructor
 public class GeoLite2IpCityServiceImpl implements IpCityService {
 
@@ -41,8 +42,6 @@ public class GeoLite2IpCityServiceImpl implements IpCityService {
             return null;
         }
 
-        // Temporary: Use web API
-        log.warn("Current GeoLite2 implementation uses web API. Switching to local database is recommended for better performance and privacy");
         return queryGeoLite2ByApi(ip);
     }
 
@@ -60,14 +59,14 @@ public class GeoLite2IpCityServiceImpl implements IpCityService {
         String baseUrl = ipCityProperties.getGeolite2().getUrl();
 
         // Validate configuration
-        if (StringUtils.isBlank(accountId) || accountId.equals("your_account_id_here")) {
-            log.error("GeoLite2 account ID is not configured. Please configure mall.mgt.ip-city.geolite2.account-id");
-            throw new IllegalStateException("GeoLite2 account ID is not configured");
+        if (StringUtils.isBlank(accountId)) {
+            log.warn("GeoLite2 account ID is not configured. Please configure mall.mgt.ip-city.geolite2.account-id");
+            throw new BusinessException(ErrorCode.CONFIG_ERROR.getCode(), "GeoLite2 account ID is not configured");
         }
 
-        if (StringUtils.isBlank(licenseKey) || licenseKey.equals("your_license_key_here")) {
+        if (StringUtils.isBlank(licenseKey)) {
             log.error("GeoLite2 license key is not configured. Please configure mall.mgt.ip-city.geolite2.license-key");
-            throw new IllegalStateException("GeoLite2 license key is not configured");
+            throw new BusinessException(ErrorCode.CONFIG_ERROR.getCode(), "GeoLite2 license key is not configured");
         }
 
         // Build API URL
@@ -90,8 +89,8 @@ public class GeoLite2IpCityServiceImpl implements IpCityService {
         try (Response response = okHttpClient.newCall(request).execute()) {
             // Check response status
             if (!response.isSuccessful()) {
-                log.error("GeoLite2 API call failed, httpStatus={}, ip={}", response.code(), ip);
-                throw new RuntimeException("GeoLite2 API call failed, http=" + response.code());
+                log.warn("GeoLite2 API call failed, httpStatus={}, ip={}", response.code(), ip);
+                return null;
             }
 
             // Check response body
@@ -107,7 +106,7 @@ public class GeoLite2IpCityServiceImpl implements IpCityService {
             GeoIpDTO geoIpDTO = JsonUtil.fromJson(responseBody, GeoIpDTO.class);
 
             if (geoIpDTO == null) {
-                log.error("Failed to parse GeoLite2 response, ip={}", ip);
+                log.warn("Failed to parse GeoLite2 response, ip={}", ip);
                 return null;
             }
 
@@ -115,8 +114,8 @@ public class GeoLite2IpCityServiceImpl implements IpCityService {
             return ipCityMapper.geoLite2ToIpCity(geoIpDTO, ip);
 
         } catch (IOException e) {
-            log.error("Exception calling GeoLite2 API, ip=" + ip, e);
-            throw new RuntimeException("Failed to call GeoLite2 API", e);
+            log.warn("Exception calling GeoLite2 API, ip={} ", ip, e);
+            return null;
         }
     }
 }

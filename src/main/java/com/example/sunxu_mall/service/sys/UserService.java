@@ -2,27 +2,27 @@ package com.example.sunxu_mall.service.sys;
 
 
 import cn.hutool.core.util.IdUtil;
-import com.example.sunxu_mall.dto.ip.IpCityDTO;
 import com.example.sunxu_mall.entity.auth.AuthUserEntity;
 import com.example.sunxu_mall.entity.auth.CaptchaEntity;
 import com.example.sunxu_mall.entity.auth.JwtUserEntity;
 import com.example.sunxu_mall.entity.auth.TokenEntity;
 import com.example.sunxu_mall.entity.sys.web.UserWebEntity;
+import com.example.sunxu_mall.event.UserLoginEvent;
 import com.example.sunxu_mall.exception.BusinessException;
 import com.example.sunxu_mall.helper.TokenHelper;
 import com.example.sunxu_mall.mapper.sys.UserWebEntityMapper;
-import com.example.sunxu_mall.service.IpCityService;
 import com.example.sunxu_mall.util.HttpUtil;
 import com.example.sunxu_mall.util.PasswordUtil;
 import com.example.sunxu_mall.util.RedisUtil;
 import com.example.sunxu_mall.util.TokenUtil;
+import com.wf.captcha.SpecCaptcha;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
-import com.wf.captcha.SpecCaptcha;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetailsService;
@@ -31,6 +31,7 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import javax.servlet.http.HttpServletRequest;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -47,7 +48,7 @@ public class UserService {
     private final AuthenticationManager authenticationManager;
     private final TokenHelper tokenHelper;
     private final UserDetailsService userDetailsService;
-    private final IpCityService ipCityService;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Value("${mall.mgt.tokenExpireTimeInRecord}")
     private int tokenExpireTimeInRecord;
@@ -63,7 +64,7 @@ public class UserService {
             AuthenticationManager authenticationManager,
             TokenHelper tokenHelper,
             UserDetailsService userDetailsService,
-            IpCityService ipCityService
+            ApplicationEventPublisher eventPublisher
     ) {
         this.userMapper = userMapper;
         this.redisUtil = redisUtil;
@@ -71,7 +72,7 @@ public class UserService {
         this.authenticationManager = authenticationManager;
         this.tokenHelper = tokenHelper;
         this.userDetailsService = userDetailsService;
-        this.ipCityService = ipCityService;
+        this.eventPublisher = eventPublisher;
     }
 
     public JwtUserEntity getUserInfo() {
@@ -89,13 +90,13 @@ public class UserService {
 
         String token = TokenUtil.getTokenForAuthorization(request);
         if (StringUtils.isEmpty(token)) {
-           throw new BusinessException(UNAUTHORIZED.getCode(), UNAUTHORIZED.getMessage());
+            throw new BusinessException(UNAUTHORIZED.getCode(), UNAUTHORIZED.getMessage());
         }
 
         tokenHelper.delToken(token);
         log.info("logout end");
     }
-    
+
     /**
      * User login
      *
@@ -119,7 +120,7 @@ public class UserService {
         try {
             // 解码密码
             String decodePassword = passwordUtil.decodeRsaPassword(authUserEntity);
-            UsernamePasswordAuthenticationToken authenticationToken = 
+            UsernamePasswordAuthenticationToken authenticationToken =
                     new UsernamePasswordAuthenticationToken(authUserEntity.getUsername(), decodePassword);
             Authentication authentication = authenticationManager.authenticate(authenticationToken);
             SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -129,13 +130,16 @@ public class UserService {
             if (Objects.isNull(userEntity)) {
                 throw new BusinessException(USER_NOT_EXIST.getCode(), USER_NOT_EXIST.getMessage());
             }
-            
-            // 获取客户端IP地址并查询城市信息
+
+            // 获取客户端 IP地址
             HttpServletRequest request = ((ServletRequestAttributes) Objects.requireNonNull(RequestContextHolder.getRequestAttributes())).getRequest();
             String clientIp = HttpUtil.getClientIp(request);
-            IpCityDTO ipCityDTO = ipCityService.getCityByIp(clientIp);
-            log.info("User login from IP: {}, City: {}, Province: {}", clientIp, ipCityDTO.getCity(), ipCityDTO.getProvince());
-            
+            log.info("[login] -> Login success, user {}, ip {}", userEntity.getUserName(), clientIp);
+
+            // 异步处理登录事件（IP查询、日志记录等）
+            eventPublisher.publishEvent(new UserLoginEvent(this, String.valueOf(userEntity.getId()), userEntity.getUserName(), clientIp, LocalDateTime.now()));
+
+            // 生成 token 并返回
             String token = tokenHelper.generateToken(jwtUserEntity);
             redisUtil.delete(redisKey);
             List<String> roles = jwtUserEntity.getAuthorities().stream()

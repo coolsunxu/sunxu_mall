@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- 引入Spring Boot默认配置以支持颜色转换 -->
+    <include resource="org/springframework/boot/logging/logback/defaults.xml" />
+
+    <!-- 日志文件存储路径 -->
+    <property name="LOG_HOME" value="logs" />
+    
+    <!-- 文件日志格式 (纯文本) -->
+    <property name="FILE_LOG_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{50}:%L [%X{traceId}] - %msg%n" />
+    
+    <!-- 控制台日志格式 (彩色) -->
+    <!-- %clr(...){color} 支持颜色配置: blue, cyan, faint, green, magenta, red, yellow -->
+    <property name="CONSOLE_LOG_PATTERN" value="%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr([%thread]){magenta} %clr(%-5level) %clr(%logger{50}:%L){cyan} %clr([%X{traceId}]){yellow} - %msg%n" />
+
+    <!-- 控制台输出 -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${CONSOLE_LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- 文件输出 -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_HOME}/mall.log</file>
+        <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+            <!-- 日志文件输出文件名 -->
+            <fileNamePattern>${LOG_HOME}/mall.%d{yyyy-MM-dd}.log</fileNamePattern>
+            <!-- 日志文件保留天数 -->
+            <maxHistory>30</maxHistory>
+        </rollingPolicy>
+        <encoder>
+            <pattern>${FILE_LOG_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- 异步输出 -->
+    <appender name="ASYNC_FILE" class="ch.qos.logback.classic.AsyncAppender">
+        <!-- 不丢失日志.默认的,如果队列的80%已满,则会丢弃TRACT、DEBUG、INFO级别的日志 -->
+        <discardingThreshold>0</discardingThreshold>
+        <!-- 更改默认的队列的深度,该值会影响性能.默认值为256 -->
+        <queueSize>512</queueSize>
+        <!-- 添加附加的caller数据, 设置为true才能显示行号 -->
+        <includeCallerData>true</includeCallerData>
+        <appender-ref ref="FILE" />
+    </appender>
+
+    <!-- 开发环境: 打印控制台 -->
+    <springProfile name="dev">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE" />
+            <appender-ref ref="ASYNC_FILE" />
+        </root>
+    </springProfile>
+
+    <!-- 生产环境: 输出到文件 -->
+    <springProfile name="prod">
+        <root level="INFO">
+            <appender-ref ref="ASYNC_FILE" />
+        </root>
+    </springProfile>
+
+    <!-- 默认配置 (如果没有激活特定profile) -->
+    <root level="INFO">
+        <appender-ref ref="CONSOLE" />
+        <appender-ref ref="ASYNC_FILE" />
+    </root>
+
+</configuration>

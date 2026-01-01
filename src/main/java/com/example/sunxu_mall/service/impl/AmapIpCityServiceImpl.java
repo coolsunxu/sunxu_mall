@@ -3,14 +3,18 @@ package com.example.sunxu_mall.service.impl;
 import com.example.sunxu_mall.config.props.IpCityConfig;
 import com.example.sunxu_mall.dto.ip.AmapIpDTO;
 import com.example.sunxu_mall.dto.ip.IpCityDTO;
+import com.example.sunxu_mall.errorcode.ErrorCode;
+import com.example.sunxu_mall.exception.BusinessException;
 import com.example.sunxu_mall.mapper.IpCityMapper;
 import com.example.sunxu_mall.service.IpCityService;
 import com.example.sunxu_mall.util.JsonUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import okhttp3.*;
+import okhttp3.HttpUrl;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.Response;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -23,8 +27,7 @@ import java.util.Objects;
  * @author sunxu
  */
 @Slf4j
-@Service
-@ConditionalOnProperty(name = "mall.mgt.ip-city.default-type", havingValue = "amap", matchIfMissing = true)
+@Service("amapIpCityService")
 @RequiredArgsConstructor
 public class AmapIpCityServiceImpl implements IpCityService {
 
@@ -45,8 +48,8 @@ public class AmapIpCityServiceImpl implements IpCityService {
         String apiKey = ipCityProperties.getAmap().getKey();
 
         if (StringUtils.isBlank(apiKey)) {
-            log.error("Amap API key is not configured or using default value. Please configure mall.mgt.ip-city.amap.key");
-            throw new IllegalStateException("Amap API key is not configured");
+            log.warn("Amap API key is not configured or using default value. Please configure mall.mgt.ip-city.amap.key");
+            throw new BusinessException(ErrorCode.CONFIG_ERROR.getCode(), "Amap API key is not configured");
         }
 
         HttpUrl.Builder urlBuilder = Objects.requireNonNull(HttpUrl.parse(baseUrl), "Invalid API URL")
@@ -64,8 +67,8 @@ public class AmapIpCityServiceImpl implements IpCityService {
         try (Response response = okHttpClient.newCall(request).execute()) {
             // Check response status
             if (!response.isSuccessful()) {
-                log.error("Amap API call failed, httpStatus={}, ip={}", response.code(), ip);
-                throw new RuntimeException("Amap API call failed, http=" + response.code());
+                log.warn("Amap API call failed, httpStatus={}, ip={}", response.code(), ip);
+                return null;
             }
 
             // Check response body
@@ -82,7 +85,7 @@ public class AmapIpCityServiceImpl implements IpCityService {
 
             // Check business status code
             if (amapIpDTO == null || !"1".equals(amapIpDTO.getStatus())) {
-                log.error("Amap API returned error, status={}, info={}, ip={}",
+                log.warn("Amap API returned error, status={}, info={}, ip={}",
                         amapIpDTO != null ? amapIpDTO.getStatus() : "null",
                         amapIpDTO != null ? amapIpDTO.getInfo() : "null",
                         ip);
@@ -93,8 +96,8 @@ public class AmapIpCityServiceImpl implements IpCityService {
             return ipCityMapper.amapToIpCity(amapIpDTO, ip);
 
         } catch (IOException e) {
-            log.error("Exception calling Amap API, ip=" + ip, e);
-            throw new RuntimeException("Failed to call Amap API", e);
+            log.warn("Exception calling Amap API, ip={}", ip, e);
+            return null;
         }
     }
 }

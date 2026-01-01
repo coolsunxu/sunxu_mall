@@ -28,6 +28,7 @@ public interface IpCityMapper {
     @Mapping(target = "longitude", expression = "java(parseLongitude(source.getRectangle()))")
     @Mapping(target = "latitude", expression = "java(parseLatitude(source.getRectangle()))")
     @Mapping(target = "isp", ignore = true)
+    @Mapping(target = "country", ignore = true)
     IpCityDTO amapToIpCity(AmapIpDTO source, String ip);
 
     /**
@@ -44,6 +45,7 @@ public interface IpCityMapper {
     @Mapping(target = "longitude", expression = "java(source.getLocation() != null ? String.valueOf(source.getLocation().getLongitude()) : null)")
     @Mapping(target = "latitude", expression = "java(source.getLocation() != null ? String.valueOf(source.getLocation().getLatitude()) : null)")
     @Mapping(target = "isp", expression = "java(source.getTraits() != null ? source.getTraits().getAutonomousSystemOrganization() : null)")
+    @Mapping(target = "country", expression = "java(source.getCountry() != null && source.getCountry().getNames() != null ? source.getCountry().getNames().getZhCn() : null)")
     IpCityDTO geoLite2ToIpCity(GeoIpDTO source, String ip);
 
     /**
