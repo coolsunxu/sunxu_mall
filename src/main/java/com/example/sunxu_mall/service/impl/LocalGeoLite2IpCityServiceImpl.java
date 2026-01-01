@@ -1,8 +1,11 @@
 package com.example.sunxu_mall.service.impl;
 
 import com.example.sunxu_mall.config.props.IpCityConfig;
+import com.example.sunxu_mall.dto.ip.GeoIpDTO;
 import com.example.sunxu_mall.dto.ip.IpCityDTO;
+import com.example.sunxu_mall.mapper.IpCityMapper;
 import com.example.sunxu_mall.service.IpCityService;
+import com.example.sunxu_mall.util.JsonUtil;
 import com.maxmind.geoip2.DatabaseReader;
 import com.maxmind.geoip2.model.CityResponse;
 import com.maxmind.geoip2.record.City;
@@ -30,10 +33,16 @@ public class LocalGeoLite2IpCityServiceImpl implements IpCityService {
     private final IpCityConfig ipCityConfig;
     private final ResourceLoader resourceLoader;
     private DatabaseReader databaseReader;
+    private final IpCityMapper ipCityMapper;
 
-    public LocalGeoLite2IpCityServiceImpl(IpCityConfig ipCityConfig, ResourceLoader resourceLoader) {
+    public LocalGeoLite2IpCityServiceImpl(
+            IpCityConfig ipCityConfig,
+            ResourceLoader resourceLoader,
+            IpCityMapper ipCityMapper
+    ) {
         this.ipCityConfig = ipCityConfig;
         this.resourceLoader = resourceLoader;
+        this.ipCityMapper = ipCityMapper;
     }
 
     @PostConstruct
@@ -91,22 +100,18 @@ public class LocalGeoLite2IpCityServiceImpl implements IpCityService {
         try {
             InetAddress ipAddress = InetAddress.getByName(ip);
             CityResponse response = databaseReader.city(ipAddress);
-            
-            City city = response.getCity();
-            Subdivision subdivision = response.getMostSpecificSubdivision();
-            Country country = response.getCountry();
-            
-            String cityName = getChineseName(city.getNames(), city.getName());
-            String provinceName = getChineseName(subdivision.getNames(), subdivision.getName());
-            String countryName = getChineseName(country.getNames(), country.getName());
-            
-            return IpCityDTO.builder()
-                    .ip(ip)
-                    .country(countryName)
-                    .province(provinceName)
-                    .city(cityName)
-                    .queryType("geolite2-local")
-                    .build();
+
+            // Parse response
+            GeoIpDTO geoIpDTO = JsonUtil.fromJson(JsonUtil.toJson(response), GeoIpDTO.class);
+
+            if (geoIpDTO == null) {
+                log.warn("Failed to parse GeoLite2 response, ip={}", ip);
+                return null;
+            }
+
+            // Convert DTO using MapStruct
+            return ipCityMapper.geoLite2ToIpCity(geoIpDTO, ip);
+
         } catch (com.maxmind.geoip2.exception.AddressNotFoundException e) {
             log.debug("[IP-Miss] IP={} not found in GeoLite2 database", ip);
             return null;

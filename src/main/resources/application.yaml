@@ -22,7 +22,7 @@ spring:
 
 logging:
   level:
-    com.example.sunxu_mall: DEBUG
+    com.example.sunxu_mall: INFO
 
 mybatis:
   mapper-locations: classpath:com/example/sunxu_mall/mapper/**/*.xml
@@ -53,6 +53,8 @@ mall:
     captchaExpireSecond: 300
     # 密码加密私钥（生产环境请在环境变量或 application-secret.yaml 中配置）
     tokenSecret: ${TOKEN_SECRET}
+    captcha:
+      enabled: false
     password:
       privateKey: ${PASSWORD_PRIVATE_KEY}
       publicKey: ${PASSWORD_PUBLIC_KEY}

@@ -5,8 +5,12 @@ import com.example.sunxu_mall.dto.sys.MenuTreeDTO;
 import com.example.sunxu_mall.entity.sys.MenuEntity;
 import com.example.sunxu_mall.entity.sys.MenuEntityExample;
 import com.example.sunxu_mall.mapper.sys.MenuEntityMapper;
+import com.example.sunxu_mall.util.BeanCopyUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -22,6 +26,7 @@ import java.util.List;
 
 @Slf4j
 @Service
+@org.springframework.transaction.annotation.Transactional(rollbackFor = Exception.class)
 public class MenuService {
 
     private final MenuEntityMapper menuEntityMapper;
@@ -30,6 +35,20 @@ public class MenuService {
             MenuEntityMapper menuEntityMapper
     ) {
         this.menuEntityMapper = menuEntityMapper;
+    }
+
+    @Retryable(value = OptimisticLockingFailureException.class, maxAttempts = 3, backoff = @Backoff(delay = 100))
+    public void updateMenu(MenuEntity menu) {
+        MenuEntity dbMenu = menuEntityMapper.selectByPrimaryKey(menu.getMenuId());
+        if (dbMenu == null) {
+            throw new RuntimeException("Menu not found");
+        }
+        BeanCopyUtils.copyNonNullProperties(menu, dbMenu);
+
+        int rows = menuEntityMapper.updateBasicInfoWithVersion(dbMenu);
+        if (rows == 0) {
+            throw new OptimisticLockingFailureException("Menu has been modified by others");
+        }
     }
 
     /**

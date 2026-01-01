@@ -3,16 +3,15 @@ package com.example.sunxu_mall.service.impl;
 import com.example.sunxu_mall.config.props.IpCityConfig;
 import com.example.sunxu_mall.dto.ip.GeoIpDTO;
 import com.example.sunxu_mall.dto.ip.IpCityDTO;
+import com.example.sunxu_mall.errorcode.ErrorCode;
+import com.example.sunxu_mall.exception.BusinessException;
 import com.example.sunxu_mall.mapper.IpCityMapper;
 import com.example.sunxu_mall.service.IpCityService;
 import com.example.sunxu_mall.util.JsonUtil;
-import com.example.sunxu_mall.errorcode.ErrorCode;
-import com.example.sunxu_mall.exception.BusinessException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.*;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;

@@ -20,13 +20,19 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
@@ -34,6 +40,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static com.example.sunxu_mall.errorcode.ErrorCode.*;
@@ -56,6 +63,9 @@ public class UserService {
     @Value("${mall.mgt.captchaExpireSecond}")
     private int captchaExpireSecond;
 
+    @Value("${mall.mgt.captcha.enabled:true}")
+    private boolean captchaEnabled;
+
 
     public UserService(
             UserWebEntityMapper userMapper,
@@ -77,7 +87,11 @@ public class UserService {
 
     public JwtUserEntity getUserInfo() {
         String currentUsername = tokenHelper.getCurrentUsername();
-        return (JwtUserEntity) userDetailsService.loadUserByUsername(currentUsername);
+        UserDetails userDetails = userDetailsService.loadUserByUsername(currentUsername);
+        if (userDetails instanceof JwtUserEntity) {
+            return (JwtUserEntity) userDetails;
+        }
+        throw new BusinessException(INTERNAL_SERVER_ERROR.getCode(), "Failed to load user info");
     }
 
     /**
@@ -103,56 +117,47 @@ public class UserService {
      * @param authUserEntity User input information
      */
     public TokenEntity login(AuthUserEntity authUserEntity) {
-        String redisKey = getCaptchaKey(authUserEntity.getUuid());
-        String code = redisUtil.get(getCaptchaKey(authUserEntity.getUuid()));
-
-        // 检查验证码是否过期
-//        if (StringUtils.isEmpty(code)) {
-//            throw new BusinessException(CAPTCHA_EXPIRED.getCode(), CAPTCHA_EXPIRED.getMessage());
-//        }
-//
-//        // 检查验证码是否正确
-//        if (!Objects.equals(code, authUserEntity.getCode().toLowerCase())) {
-//            log.info("real code {}, provide code {}", code, authUserEntity.getCode());
-//            throw new BusinessException(CAPTCHA_ERROR.getCode(), CAPTCHA_ERROR.getMessage());
-//        }
+        validateLoginParams(authUserEntity);
+        validateCaptchaIfEnabled(authUserEntity);
 
         try {
-            // 解码密码
             String decodePassword = passwordUtil.decodeRsaPassword(authUserEntity);
-            UsernamePasswordAuthenticationToken authenticationToken =
-                    new UsernamePasswordAuthenticationToken(authUserEntity.getUsername(), decodePassword);
-            Authentication authentication = authenticationManager.authenticate(authenticationToken);
+            Authentication authentication = authenticate(authUserEntity.getUsername(), decodePassword);
             SecurityContextHolder.getContext().setAuthentication(authentication);
-            JwtUserEntity jwtUserEntity = (JwtUserEntity) (authentication.getPrincipal());
-            UserWebEntity userEntity = userMapper.findByUserName(jwtUserEntity.getUsername());
+            JwtUserEntity jwtUserEntity = getJwtPrincipal(authentication);
+            UserWebEntity userEntity = loadUser(jwtUserEntity.getUsername());
 
-            if (Objects.isNull(userEntity)) {
-                throw new BusinessException(USER_NOT_EXIST.getCode(), USER_NOT_EXIST.getMessage());
+            String token = tokenHelper.generateToken(jwtUserEntity);
+            if (StringUtils.isBlank(token)) {
+                throw new BusinessException(OPERATION_FAILED.getCode(), "Token generation failed");
             }
 
-            // 获取客户端 IP地址
-            HttpServletRequest request = ((ServletRequestAttributes) Objects.requireNonNull(RequestContextHolder.getRequestAttributes())).getRequest();
-            String clientIp = HttpUtil.getClientIp(request);
+            String clientIp = resolveClientIpSafely();
             log.info("[login] -> Login success, user {}, ip {}", userEntity.getUserName(), clientIp);
 
-            // 异步处理登录事件（IP查询、日志记录等）
-            eventPublisher.publishEvent(new UserLoginEvent(this, String.valueOf(userEntity.getId()), userEntity.getUserName(), clientIp, LocalDateTime.now()));
+            eventPublisher.publishEvent(new UserLoginEvent(
+                    this,
+                    userEntity.getId(),
+                    userEntity.getUserName(),
+                    clientIp,
+                    LocalDateTime.now(),
+                    userEntity.getLastLoginCity()
+            ));
 
-            // 生成 token 并返回
-            String token = tokenHelper.generateToken(jwtUserEntity);
-            redisUtil.delete(redisKey);
             List<String> roles = jwtUserEntity.getAuthorities().stream()
                     .map(SimpleGrantedAuthority::getAuthority)
                     .collect(Collectors.toList());
 
             return new TokenEntity(jwtUserEntity.getUsername(), token, roles, tokenExpireTimeInRecord);
+        } catch (AuthenticationException e) {
+            log.warn("[login] -> Authentication failed, username {}", authUserEntity.getUsername());
+            throw new BusinessException(UNAUTHORIZED.getCode(), UNAUTHORIZED.getMessage());
         } catch (BusinessException e) {
-            log.info("[login] -> Login failed:", e);
+            log.warn("[login] -> Login failed, username {}, code {}", authUserEntity.getUsername(), e.getCode(), e);
             throw e;
         } catch (Exception e) {
-            log.info("[login] -> Login failed:", e);
-            throw new BusinessException(BAD_REQUEST.getCode(), "unknown error");
+            log.error("[login] -> Login failed, username {}", authUserEntity.getUsername(), e);
+            throw new BusinessException(INTERNAL_SERVER_ERROR.getCode(), INTERNAL_SERVER_ERROR.getMessage());
         }
     }
 
@@ -164,9 +169,111 @@ public class UserService {
         String result = captcha.text().toLowerCase();
         String uuid = "C" + IdUtil.simpleUUID();
         // 保存验证码到 Redis中
-        redisUtil.set(getCaptchaKey(uuid), result, captchaExpireSecond, java.util.concurrent.TimeUnit.SECONDS);
+        redisUtil.set(getCaptchaKey(uuid), result, captchaExpireSecond, TimeUnit.SECONDS);
         return new CaptchaEntity(uuid, captcha.toBase64());
     }
 
+    @Transactional(rollbackFor = Exception.class)
+    @Retryable(value = OptimisticLockingFailureException.class, maxAttempts = 3, backoff = @Backoff(delay = 100))
+    public void updateLoginCity(UserWebEntity userWebEntity) {
+        if (Objects.isNull(userWebEntity) || Objects.isNull(userWebEntity.getId())) {
+            return;
+        }
+
+        Integer version = userMapper.selectVersionById(userWebEntity.getId());
+        if (Objects.isNull(version)) {
+            return;
+        }
+
+        UserWebEntity update = UserWebEntity.builder()
+                .id(userWebEntity.getId())
+                .lastLoginCity(userWebEntity.getLastLoginCity())
+                .lastLoginTime(userWebEntity.getLastLoginTime())
+                .version(version)
+                .build();
+
+        int rows = userMapper.updateLoginInfoWithVersion(update);
+        if (rows == 0) {
+            log.warn("Optimistic lock failure for userId {}", userWebEntity.getId());
+            throw new OptimisticLockingFailureException("User data has been modified, please retry");
+        }
+    }
+
+    private void validateLoginParams(AuthUserEntity authUserEntity) {
+        if (Objects.isNull(authUserEntity)) {
+            throw new BusinessException(PARAMETER_MISSING.getCode(), "Login parameters cannot be null");
+        }
+
+        if (StringUtils.isBlank(authUserEntity.getUsername())) {
+            throw new BusinessException(PARAMETER_MISSING.getCode(), "Username cannot be empty");
+        }
+
+        if (StringUtils.isBlank(authUserEntity.getPassword())) {
+            throw new BusinessException(PARAMETER_MISSING.getCode(), "Password cannot be empty");
+        }
+
+        if (captchaEnabled) {
+            if (StringUtils.isBlank(authUserEntity.getUuid())) {
+                throw new BusinessException(PARAMETER_MISSING.getCode(), "Captcha uuid cannot be empty");
+            }
+
+            if (StringUtils.isBlank(authUserEntity.getCode())) {
+                throw new BusinessException(PARAMETER_MISSING.getCode(), "Captcha code cannot be empty");
+            }
+        }
+    }
+
+    private void validateCaptchaIfEnabled(AuthUserEntity authUserEntity) {
+        if (!captchaEnabled) {
+            return;
+        }
+
+        String redisKey = getCaptchaKey(authUserEntity.getUuid());
+        String code = redisUtil.get(redisKey);
+        if (StringUtils.isEmpty(code)) {
+            throw new BusinessException(CAPTCHA_EXPIRED.getCode(), CAPTCHA_EXPIRED.getMessage());
+        }
+
+        String inputCode = authUserEntity.getCode().toLowerCase();
+        if (!Objects.equals(code, inputCode)) {
+            throw new BusinessException(CAPTCHA_ERROR.getCode(), CAPTCHA_ERROR.getMessage());
+        }
+
+        redisUtil.delete(redisKey);
+    }
+
+    private Authentication authenticate(String username, String decodePassword) {
+        UsernamePasswordAuthenticationToken authenticationToken =
+                new UsernamePasswordAuthenticationToken(username, decodePassword);
+        return authenticationManager.authenticate(authenticationToken);
+    }
+
+    private JwtUserEntity getJwtPrincipal(Authentication authentication) {
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof JwtUserEntity) {
+            return (JwtUserEntity) principal;
+        }
+        throw new BusinessException(INTERNAL_SERVER_ERROR.getCode(), "Unsupported principal type");
+    }
+
+    private UserWebEntity loadUser(String username) {
+        UserWebEntity userEntity = userMapper.findByUserName(username);
+        if (Objects.isNull(userEntity)) {
+            throw new BusinessException(USER_NOT_EXIST.getCode(), USER_NOT_EXIST.getMessage());
+        }
+        return userEntity;
+    }
+
+    private String resolveClientIpSafely() {
+        try {
+            if (!(RequestContextHolder.getRequestAttributes() instanceof ServletRequestAttributes)) {
+                return "unknown";
+            }
+            HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.getRequestAttributes()).getRequest();
+            return HttpUtil.getClientIp(request);
+        } catch (Exception e) {
+            return "unknown";
+        }
+    }
 
 }

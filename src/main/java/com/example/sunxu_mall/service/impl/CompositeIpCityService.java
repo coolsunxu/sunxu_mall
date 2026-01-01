@@ -54,7 +54,7 @@ public class CompositeIpCityService implements IpCityService {
         if (cache != null) {
             IpCityDTO cached = cache.get(ip, IpCityDTO.class);
             if (cached != null) {
-                log.debug("[IP-Cache] Hit L1 for IP={}", ip);
+                log.info("[IP-Cache] Hit L1 for IP={}", ip);
                 return cached;
             }
         }
@@ -66,7 +66,7 @@ public class CompositeIpCityService implements IpCityService {
             if (StringUtils.hasText(redisJson)) {
                 IpCityDTO cached = JsonUtil.fromJson(redisJson, IpCityDTO.class);
                 if (cached != null) {
-                    log.debug("[IP-Cache] Hit L2 for IP={}", ip);
+                    log.info("[IP-Cache] Hit L2 for IP={}", ip);
                     // Write back to L1
                     if (cache != null) cache.put(ip, cached);
                     return cached;

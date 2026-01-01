@@ -40,13 +40,29 @@ public interface IpCityMapper {
      */
     @Mapping(target = "ip", source = "ip")
     @Mapping(target = "province", expression = "java(source.getSubdivisions() != null && !source.getSubdivisions().isEmpty() ? source.getSubdivisions().get(0).getNames().getZhCn() : null)")
-    @Mapping(target = "city", expression = "java(source.getCity() != null && source.getCity().getNames() != null ? source.getCity().getNames().getZhCn() : null)")
+    @Mapping(target = "city", expression = "java(getCityOrCountry(source))")
     @Mapping(target = "district", ignore = true)
     @Mapping(target = "longitude", expression = "java(source.getLocation() != null ? String.valueOf(source.getLocation().getLongitude()) : null)")
     @Mapping(target = "latitude", expression = "java(source.getLocation() != null ? String.valueOf(source.getLocation().getLatitude()) : null)")
     @Mapping(target = "isp", expression = "java(source.getTraits() != null ? source.getTraits().getAutonomousSystemOrganization() : null)")
     @Mapping(target = "country", expression = "java(source.getCountry() != null && source.getCountry().getNames() != null ? source.getCountry().getNames().getZhCn() : null)")
     IpCityDTO geoLite2ToIpCity(GeoIpDTO source, String ip);
+
+    default String getCityOrCountry(GeoIpDTO source) {
+        if (source == null) {
+            return null;
+        }
+        if (source.getCity() != null && source.getCity().getNames() != null) {
+            String city = source.getCity().getNames().getZhCn();
+            if (city != null && !city.trim().isEmpty()) {
+                return city;
+            }
+        }
+        if (source.getCountry() != null && source.getCountry().getNames() != null) {
+            return source.getCountry().getNames().getZhCn();
+        }
+        return null;
+    }
 
     /**
      * Parse longitude from Amap rectangle field

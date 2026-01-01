@@ -1,0 +1,43 @@
+package com.example.sunxu_mall.enums;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+/**
+ * Excel导出业务类型枚举
+ */
+@Getter
+@AllArgsConstructor
+public enum ExcelBizTypeEnum {
+
+    MENU((byte) 1, "菜单"),
+    ROLE((byte) 2, "角色"),
+    DEPT((byte) 3, "部门"),
+    USER((byte) 4, "用户"),
+    JOB((byte) 5, "岗位"),
+    
+    UNIT((byte) 101, "单位"),
+    BRAND((byte) 102, "品牌"),
+    ATTRIBUTE((byte) 103, "属性"),
+    ATTRIBUTE_VALUE((byte) 104, "属性值"),
+    CATEGORY((byte) 105, "分类"),
+    PRODUCT((byte) 106, "商品"),
+    
+    COMMON_PHOTO_GROUP((byte) 110, "图片组"),
+    COMMON_NOTIFY((byte) 111, "通知"),
+    COMMON_JOB((byte) 112, "定时任务"),
+    
+    ORDER_TRADE((byte) 120, "订单");
+
+    private final Byte code;
+    private final String desc;
+
+    public static ExcelBizTypeEnum getByCode(Byte code) {
+        for (ExcelBizTypeEnum value : values()) {
+            if (value.code.equals(code)) {
+                return value;
+            }
+        }
+        return null;
+    }
+}
