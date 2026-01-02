@@ -1,0 +1,126 @@
+package com.example.sunxu_mall.controller.sys;
+
+import com.example.sunxu_mall.annotation.NoLogin;
+import com.example.sunxu_mall.convert.user.UserStructMapper;
+import com.example.sunxu_mall.dto.user.UserCreateDTO;
+import com.example.sunxu_mall.dto.user.UserQueryDTO;
+import com.example.sunxu_mall.dto.user.UserUpdateDTO;
+import com.example.sunxu_mall.entity.sys.web.UserWebEntity;
+import com.example.sunxu_mall.model.ResponsePageEntity;
+import com.example.sunxu_mall.service.sys.UserService;
+import com.example.sunxu_mall.vo.user.UserVO;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
+import java.util.List;
+
+/**
+ * @author sunxu
+ * @version 1.0
+ * @date 2026/1/2 13:49
+ * @description User Controller
+ */
+
+
+@Slf4j
+@Tag(name = "用户操作", description = "用户接口")
+@RestController
+@RequestMapping("/v1/user")
+public class UserController {
+
+    private final UserService userService;
+    private final UserStructMapper userStructMapper;
+
+    public UserController(
+            UserService userService,
+            UserStructMapper userStructMapper
+    ) {
+        this.userService = userService;
+        this.userStructMapper = userStructMapper;
+    }
+
+    /**
+     * 根据条件查询用户列表
+     *
+     * @param userQueryDTO 条件
+     * @return 用户列表
+     */
+    @Operation(summary = "根据条件查询用户列表", description = "根据条件查询用户列表")
+    @PostMapping("/searchByPage")
+    public ResponsePageEntity<UserVO> searchByPage(@RequestBody UserQueryDTO userQueryDTO) {
+        ResponsePageEntity<UserWebEntity> pageEntity = userService.searchByPage(userQueryDTO);
+        List<UserVO> voList = userStructMapper.toVOList(pageEntity.getList());
+        log.info("[searchByPage] -> get user info {}", voList);
+        return new ResponsePageEntity<>(pageEntity.getPageNum(), pageEntity.getPageSize(), pageEntity.getTotal(), voList);
+    }
+
+
+    /**
+     * 添加用户
+     *
+     * @param userCreateDTO 用户实体
+     */
+    @Operation(summary = "添加用户", description = "添加用户")
+    @PostMapping("/insert")
+    public void insert(@RequestBody @Valid UserCreateDTO userCreateDTO) {
+        UserWebEntity userEntity = userStructMapper.toEntity(userCreateDTO);
+        log.info("[insert] -> insert user info {}", userEntity);
+        userService.insert(userEntity);
+    }
+
+    /**
+     * 修改用户
+     *
+     * @param userUpdateDTO 用户实体
+     * @return 影响行数
+     */
+    @Operation(summary = "修改用户", description = "修改用户")
+    @PostMapping("/update")
+    public int update(@RequestBody @Valid UserUpdateDTO userUpdateDTO) {
+        UserWebEntity userEntity = userStructMapper.toEntity(userUpdateDTO);
+        return userService.update(userEntity);
+    }
+
+    /**
+     * 删除用户
+     *
+     * @param ids 用户ID
+     * @return 影响行数
+     */
+    @Operation(summary = "删除用户", description = "删除用户")
+    @PostMapping("/deleteByIds")
+    public int deleteById(@RequestBody @NotNull List<Long> ids) {
+        return userService.deleteByIds(ids);
+    }
+
+
+    /**
+     * 重置密码
+     *
+     * @param ids 用户ID
+     * @return 影响行数
+     */
+    @Operation(summary = "重置密码", description = "重置密码")
+    @PostMapping("/resetPwd")
+    public int resetPwd(@RequestBody @NotNull List<Long> ids) {
+        return userService.resetPwd(ids);
+    }
+
+//    /**
+//     * 导出用户数据
+//     *
+//     * @return 影响行数
+//     */
+//    // @ExcelExport(ExcelBizTypeEnum.USER)
+//    @NoLogin
+//    @Operation(summary = "导出用户数据", description = "导出用户数据")
+//    @PostMapping("/export")
+//    public void export(HttpServletResponse response, UserQueryDTO userQueryDTO) throws IOException {
+//        userService.export(response, userQueryDTO);
+//    }
+}

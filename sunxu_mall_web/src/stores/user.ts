@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import request from '../utils/request'
+import { login as loginApi, logout as logoutApi, getUserInfo as getUserInfoApi } from '../api/auth'
 import type { AuthUserEntity, TokenEntity, JwtUserEntity } from '../types'
 
 export const useUserStore = defineStore('user', () => {
@@ -11,9 +11,8 @@ export const useUserStore = defineStore('user', () => {
   
   const login = async (credentials: AuthUserEntity): Promise<TokenEntity> => {
     console.log('用户状态管理：开始登录', credentials.username)
-    // 调用真实的后端登录接口
     try {
-      const response: TokenEntity = await request.post('/web/user/login', credentials)
+      const response: TokenEntity = await loginApi(credentials)
       console.log('用户状态管理：登录成功', response)
       // 保存token到本地存储
       token.value = response.token
@@ -29,13 +28,11 @@ export const useUserStore = defineStore('user', () => {
     console.log('用户状态管理：开始退出登录')
     
     try {
-      // 调用后端logout接口
       if (token.value) {
-        await request.post('/web/user/logout')
+        await logoutApi()
         console.log('用户状态管理：后端退出登录成功')
       }
     } catch (error) {
-      // 即使后端调用失败（如token已失效），也要继续清除本地状态
       console.warn('用户状态管理：后端退出登录失败，但仍将清除本地状态', error)
     } finally {
       // 清除本地状态
@@ -50,9 +47,8 @@ export const useUserStore = defineStore('user', () => {
     console.log('检查登录状态')
     if (token.value) {
       console.log('有token，开始获取用户信息')
-      // 调用真实的用户信息接口
       try {
-        const response: JwtUserEntity = await request.get('/web/user/info')
+        const response: JwtUserEntity = await getUserInfoApi()
         userInfo.value = response
         console.log('获取用户信息成功', userInfo.value)
       } catch (error) {

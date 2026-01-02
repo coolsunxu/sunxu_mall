@@ -1,15 +1,11 @@
-package com.example.sunxu_mall.controller;
+package com.example.sunxu_mall.controller.sys;
 
-import com.example.sunxu_mall.annotation.NoLogin;
 import com.example.sunxu_mall.dto.sys.MenuTreeDTO;
-import com.example.sunxu_mall.entity.sys.MenuEntity;
 import com.example.sunxu_mall.service.sys.MenuService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import javax.validation.constraints.NotNull;
 import java.util.List;
 
 /**

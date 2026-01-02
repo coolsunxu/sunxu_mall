@@ -534,7 +534,7 @@
     from sys_user
     where id = #{id,jdbcType=BIGINT}
   </select>
-  <update id="updateLoginInfoWithVersion" parameterType="com.example.sunxu_mall.entity.sys.web.UserWebEntity">
+  <update id="updateUserInfoWithVersion" parameterType="com.example.sunxu_mall.entity.sys.web.UserWebEntity">
     update sys_user
     <set>
       <if test="avatarId != null">

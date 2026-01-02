@@ -102,5 +102,5 @@ public interface UserWebEntityMapper {
 
     Integer selectVersionById(Long id);
 
-    int updateLoginInfoWithVersion(UserWebEntity row);
+    int updateUserInfoWithVersion(UserWebEntity row);
 }

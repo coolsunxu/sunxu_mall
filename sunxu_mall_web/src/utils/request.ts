@@ -5,6 +5,22 @@ import { useUserStore } from '../stores/user'
 const service = axios.create({
   baseURL: '/api', // 使用相对路径，配合vite代理
   timeout: 10000, // 请求超时时间
+  transformResponse: [function (data) {
+    if (typeof data === 'string') {
+      try {
+        // Replace long numbers (16+ digits) with strings to prevent precision loss
+        data = data.replace(/":\s*([0-9]{16,})/g, '": "$1"')
+      } catch (e) {
+        // ignore
+      }
+      try {
+        return JSON.parse(data)
+      } catch (e) {
+        return data
+      }
+    }
+    return data
+  }]
 })
 
 // 请求拦截器

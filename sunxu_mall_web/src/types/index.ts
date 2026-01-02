@@ -71,3 +71,66 @@ export interface ApiResult<T = any> {
   data: T
 }
 
+// 分页响应格式 - 对应后端 ResponsePageEntity
+export interface ResponsePageEntity<T> {
+  pageNum: number
+  pageSize: number
+  total: number
+  list: T[]
+}
+
+// 用户展示对象 - 对应后端 UserVO
+export interface UserVO {
+  id: number
+  userName: string
+  nickName: string
+  email: string
+  phone: string
+  deptId: number
+  jobId: number
+  sex: number // 0-Female, 1-Male, 2-Unknown
+  validStatus: boolean
+  avatarId: number
+  createTime: string
+  lastLoginTime: string
+  lastLoginCity: string
+}
+
+// 用户创建参数 - 对应后端 UserCreateDTO
+export interface UserCreateDTO {
+  userName: string
+  password?: string
+  email?: string
+  phone?: string
+  deptId?: number
+  jobId?: number
+  nickName?: string
+  sex?: number
+  validStatus?: boolean
+  avatarId?: number
+}
+
+// 用户更新参数 - 对应后端 UserUpdateDTO
+export interface UserUpdateDTO {
+  id: number
+  nickName?: string
+  email?: string
+  phone?: string
+  deptId?: number
+  jobId?: number
+  sex?: number
+  validStatus?: boolean
+  avatarId?: number
+  version?: number
+}
+
+// 用户查询参数 - 对应后端 UserQueryDTO
+export interface UserQueryDTO {
+  pageNum: number
+  pageSize: number
+  userName?: string
+  phone?: string
+  email?: string
+  validStatus?: boolean
+  deptId?: number
+}

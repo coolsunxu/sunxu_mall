@@ -44,7 +44,7 @@ public class UserLoginListener {
     }
 
     @Async("loginEventExecutor")
-    @EventListener
+    @EventListener(condition = "#event.getIp()!=null")
     public void handleUserLogin(UserLoginEvent event) {
         
         try {
@@ -113,6 +113,6 @@ public class UserLoginListener {
                 .lastLoginTime(event.getLoginTime())
                 .build();
 
-        userService.updateLoginCity(updateUser);
+        userService.update(updateUser);
     }
 }

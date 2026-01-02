@@ -42,17 +42,27 @@ public class PasswordUtil {
     /**
      * 解密 RSA密码
      *
-     * @param authUserEntity 用户实体
-     * @return 密码
+     * @param password 密文
+     * @return 明文
      */
-    public String decodeRsaPassword(AuthUserEntity authUserEntity) {
+    public String decodeRsaPassword(String password) {
         try {
             RSA rsa = new RSA(privateKey, publicKey);
-            byte[] encryptedBytes = cn.hutool.core.codec.Base64.decode(authUserEntity.getPassword());
+            byte[] encryptedBytes = cn.hutool.core.codec.Base64.decode(password);
             return new String(rsa.decrypt(encryptedBytes, KeyType.PrivateKey));
         } catch (Exception e) {
             log.warn("decode rsa password error", e);
             throw new BusinessException(ErrorCode.DECRYPTION_FAILED.getCode(), ErrorCode.DECRYPTION_FAILED.getMessage());
         }
+    }
+
+    /**
+     * 解密 RSA密码
+     *
+     * @param authUserEntity 用户实体
+     * @return 密码
+     */
+    public String decodeRsaPassword(AuthUserEntity authUserEntity) {
+        return decodeRsaPassword(authUserEntity.getPassword());
     }
 }

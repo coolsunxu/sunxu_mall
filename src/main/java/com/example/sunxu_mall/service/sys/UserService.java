@@ -2,19 +2,24 @@ package com.example.sunxu_mall.service.sys;
 
 
 import cn.hutool.core.util.IdUtil;
+import com.example.sunxu_mall.dto.user.UserQueryDTO;
 import com.example.sunxu_mall.entity.auth.AuthUserEntity;
 import com.example.sunxu_mall.entity.auth.CaptchaEntity;
 import com.example.sunxu_mall.entity.auth.JwtUserEntity;
 import com.example.sunxu_mall.entity.auth.TokenEntity;
 import com.example.sunxu_mall.entity.sys.web.UserWebEntity;
+import com.example.sunxu_mall.entity.sys.web.UserWebEntityExample;
 import com.example.sunxu_mall.event.UserLoginEvent;
 import com.example.sunxu_mall.exception.BusinessException;
 import com.example.sunxu_mall.helper.TokenHelper;
 import com.example.sunxu_mall.mapper.sys.UserWebEntityMapper;
+import com.example.sunxu_mall.model.ResponsePageEntity;
 import com.example.sunxu_mall.util.HttpUtil;
 import com.example.sunxu_mall.util.PasswordUtil;
 import com.example.sunxu_mall.util.RedisUtil;
 import com.example.sunxu_mall.util.TokenUtil;
+import com.github.pagehelper.PageHelper;
+import com.github.pagehelper.PageInfo;
 import com.wf.captcha.SpecCaptcha;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -173,32 +178,6 @@ public class UserService {
         return new CaptchaEntity(uuid, captcha.toBase64());
     }
 
-    @Transactional(rollbackFor = Exception.class)
-    @Retryable(value = OptimisticLockingFailureException.class, maxAttempts = 3, backoff = @Backoff(delay = 100))
-    public void updateLoginCity(UserWebEntity userWebEntity) {
-        if (Objects.isNull(userWebEntity) || Objects.isNull(userWebEntity.getId())) {
-            return;
-        }
-
-        Integer version = userMapper.selectVersionById(userWebEntity.getId());
-        if (Objects.isNull(version)) {
-            return;
-        }
-
-        UserWebEntity update = UserWebEntity.builder()
-                .id(userWebEntity.getId())
-                .lastLoginCity(userWebEntity.getLastLoginCity())
-                .lastLoginTime(userWebEntity.getLastLoginTime())
-                .version(version)
-                .build();
-
-        int rows = userMapper.updateLoginInfoWithVersion(update);
-        if (rows == 0) {
-            log.warn("Optimistic lock failure for userId {}", userWebEntity.getId());
-            throw new OptimisticLockingFailureException("User data has been modified, please retry");
-        }
-    }
-
     private void validateLoginParams(AuthUserEntity authUserEntity) {
         if (Objects.isNull(authUserEntity)) {
             throw new BusinessException(PARAMETER_MISSING.getCode(), "Login parameters cannot be null");
@@ -274,6 +253,128 @@ public class UserService {
         } catch (Exception e) {
             return "unknown";
         }
+    }
+
+    /**
+     * 根据 id查询用户信息
+     * @param id 用户 id
+     * @return 返回用户信息
+     */
+    public UserWebEntity findById(Long id) {
+        return userMapper.selectByPrimaryKey(id);
+    }
+
+    public ResponsePageEntity<UserWebEntity> searchByPage(UserQueryDTO queryDTO) {
+        UserWebEntityExample example = new UserWebEntityExample();
+        UserWebEntityExample.Criteria criteria = example.createCriteria();
+        
+        // Check if isDel exists in entity
+        criteria.andIsDelEqualTo(false);
+
+        if (StringUtils.isNotBlank(queryDTO.getUserName())) {
+            criteria.andUserNameLike("%" + queryDTO.getUserName() + "%");
+        }
+        if (StringUtils.isNotBlank(queryDTO.getPhone())) {
+            criteria.andPhoneLike("%" + queryDTO.getPhone() + "%");
+        }
+        if (StringUtils.isNotBlank(queryDTO.getEmail())) {
+            criteria.andEmailLike("%" + queryDTO.getEmail() + "%");
+        }
+        if (Objects.nonNull(queryDTO.getValidStatus())) {
+            criteria.andValidStatusEqualTo(queryDTO.getValidStatus());
+        }
+        if (Objects.nonNull(queryDTO.getDeptId())) {
+            criteria.andDeptIdEqualTo(queryDTO.getDeptId());
+        }
+
+        PageHelper.startPage(queryDTO.getPageNum(), queryDTO.getPageSize());
+        List<UserWebEntity> list = userMapper.selectByExample(example);
+        PageInfo<UserWebEntity> pageInfo = new PageInfo<>(list);
+        long total = pageInfo.getTotal();
+        
+        return new ResponsePageEntity<>((long)queryDTO.getPageNum(), (long)queryDTO.getPageSize(), total, list);
+    }
+
+    /**
+     * 添加用户
+     * @param userEntity 用户实体
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void insert(UserWebEntity userEntity) {
+        if (StringUtils.isNotBlank(userEntity.getPassword())) {
+            String plainPwd = passwordUtil.decodeRsaPassword(userEntity.getPassword());
+            userEntity.setPassword(passwordUtil.encode(plainPwd));
+        }
+        JwtUserEntity currentUser = getUserInfo();
+        userEntity.setCreateUserId(currentUser.getId());
+        userEntity.setCreateUserName(currentUser.getUsername());
+        userEntity.setUpdateUserId(currentUser.getId());
+        userEntity.setUpdateUserName(currentUser.getUsername());
+        userEntity.setCreateTime(LocalDateTime.now());
+        userEntity.setUpdateTime(LocalDateTime.now());
+        userEntity.setIsDel(false);
+        userEntity.setVersion(1);
+        userMapper.insertSelective(userEntity);
+    }
+
+    /**
+     * 更新用户信息
+     * 采用乐观锁机制：version + retry
+     * @param userEntity 用户实体
+     * @return 更新行数
+     */
+    @Transactional(rollbackFor = Exception.class)
+    @Retryable(value = OptimisticLockingFailureException.class, maxAttempts = 3, backoff = @Backoff(delay = 100))
+    public int update(UserWebEntity userEntity) {
+        if (Objects.isNull(userEntity) || Objects.isNull(userEntity.getId())) {
+            throw new BusinessException(PARAMETER_MISSING.getCode(), "User ID cannot be null");
+        }
+
+        Integer version = userMapper.selectVersionById(userEntity.getId());
+        if (Objects.isNull(version)) {
+            throw new BusinessException(USER_NOT_EXIST.getCode(), USER_NOT_EXIST.getMessage());
+        }
+
+        userEntity.setVersion(version);
+        userEntity.setUpdateTime(LocalDateTime.now());
+        
+        int rows = userMapper.updateUserInfoWithVersion(userEntity);
+        if (rows == 0) {
+            log.warn("Optimistic lock failure for userId {}", userEntity.getId());
+            throw new OptimisticLockingFailureException("User data has been modified, please retry");
+        }
+        return rows;
+    }
+
+    /**
+     * 批量删除用户（逻辑删除）
+     * @param ids 用户ID列表
+     * @return 更新行数
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public int deleteByIds(List<Long> ids) {
+        UserWebEntityExample example = new UserWebEntityExample();
+        example.createCriteria().andIdIn(ids);
+        UserWebEntity update = new UserWebEntity();
+        update.setIsDel(true);
+        update.setUpdateTime(LocalDateTime.now());
+        return userMapper.updateByExampleSelective(update, example);
+    }
+
+    /**
+     * 批量重置密码
+     * @param ids 用户ID列表
+     * @return 更新行数
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public int resetPwd(List<Long> ids) {
+        UserWebEntityExample example = new UserWebEntityExample();
+        example.createCriteria().andIdIn(ids);
+        UserWebEntity update = new UserWebEntity();
+        // Default password logic here, assumed 123456
+        update.setPassword(passwordUtil.encode("123456")); 
+        update.setUpdateTime(LocalDateTime.now());
+        return userMapper.updateByExampleSelective(update, example);
     }
 
 }

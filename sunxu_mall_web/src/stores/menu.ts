@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-import request from '../utils/request'
+import { getMenuTree as getMenuTreeApi } from '../api/menu'
 import type { MenuTreeDTO } from '../types'
 
 export const useMenuStore = defineStore('menu', () => {
@@ -11,8 +11,7 @@ export const useMenuStore = defineStore('menu', () => {
     console.log('菜单状态管理：开始获取菜单树')
     loading.value = true
     try {
-      // 调用真实的后端菜单接口
-      const response: MenuTreeDTO[] = await request.get('/menu/getMenuTree')
+      const response: MenuTreeDTO[] = await getMenuTreeApi()
       console.log('菜单状态管理：获取菜单树成功', response)
       menuTree.value = response
       return menuTree.value
