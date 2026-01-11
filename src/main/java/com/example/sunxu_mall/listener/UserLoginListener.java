@@ -97,7 +97,7 @@ public class UserLoginListener {
                 .requestParam(JSON.toJSONString(email))
                 .build();
 
-        commonTaskService.createTask(task);
+        commonTaskService.insert(task);
     }
 
     private void updateSysUser(UserLoginEvent event, IpCityDTO ipCityDTO) {

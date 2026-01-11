@@ -1,6 +1,5 @@
 package com.example.sunxu_mall.service.sys;
 
-
 import cn.hutool.core.util.IdUtil;
 import com.example.sunxu_mall.dto.user.UserQueryDTO;
 import com.example.sunxu_mall.entity.auth.AuthUserEntity;
@@ -13,13 +12,13 @@ import com.example.sunxu_mall.event.UserLoginEvent;
 import com.example.sunxu_mall.exception.BusinessException;
 import com.example.sunxu_mall.helper.TokenHelper;
 import com.example.sunxu_mall.mapper.sys.UserWebEntityMapper;
-import com.example.sunxu_mall.model.ResponsePageEntity;
+import com.example.sunxu_mall.service.BaseService;
+import com.example.sunxu_mall.util.BeanCopyUtils;
 import com.example.sunxu_mall.util.HttpUtil;
 import com.example.sunxu_mall.util.PasswordUtil;
 import com.example.sunxu_mall.util.RedisUtil;
 import com.example.sunxu_mall.util.TokenUtil;
-import com.github.pagehelper.PageHelper;
-import com.github.pagehelper.PageInfo;
+import com.example.sunxu_mall.util.SecurityUtil;
 import com.wf.captcha.SpecCaptcha;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -53,7 +52,7 @@ import static com.example.sunxu_mall.util.CaptchaKeyUtil.getCaptchaKey;
 
 @Slf4j
 @Service
-public class UserService {
+public class UserService extends BaseService<UserWebEntity, UserQueryDTO> {
     private final UserWebEntityMapper userMapper;
     private final RedisUtil redisUtil;
     private final PasswordUtil passwordUtil;
@@ -90,14 +89,6 @@ public class UserService {
         this.eventPublisher = eventPublisher;
     }
 
-    public JwtUserEntity getUserInfo() {
-        String currentUsername = tokenHelper.getCurrentUsername();
-        UserDetails userDetails = userDetailsService.loadUserByUsername(currentUsername);
-        if (userDetails instanceof JwtUserEntity) {
-            return (JwtUserEntity) userDetails;
-        }
-        throw new BusinessException(INTERNAL_SERVER_ERROR.getCode(), "Failed to load user info");
-    }
 
     /**
      * User logout
@@ -257,6 +248,7 @@ public class UserService {
 
     /**
      * 根据 id查询用户信息
+     *
      * @param id 用户 id
      * @return 返回用户信息
      */
@@ -264,10 +256,11 @@ public class UserService {
         return userMapper.selectByPrimaryKey(id);
     }
 
-    public ResponsePageEntity<UserWebEntity> searchByPage(UserQueryDTO queryDTO) {
+    @Override
+    protected List<UserWebEntity> selectList(UserQueryDTO queryDTO) {
         UserWebEntityExample example = new UserWebEntityExample();
         UserWebEntityExample.Criteria criteria = example.createCriteria();
-        
+
         // Check if isDel exists in entity
         criteria.andIsDelEqualTo(false);
 
@@ -286,17 +279,13 @@ public class UserService {
         if (Objects.nonNull(queryDTO.getDeptId())) {
             criteria.andDeptIdEqualTo(queryDTO.getDeptId());
         }
-
-        PageHelper.startPage(queryDTO.getPageNum(), queryDTO.getPageSize());
-        List<UserWebEntity> list = userMapper.selectByExample(example);
-        PageInfo<UserWebEntity> pageInfo = new PageInfo<>(list);
-        long total = pageInfo.getTotal();
         
-        return new ResponsePageEntity<>((long)queryDTO.getPageNum(), (long)queryDTO.getPageSize(), total, list);
+        return userMapper.selectByExample(example);
     }
 
     /**
      * 添加用户
+     *
      * @param userEntity 用户实体
      */
     @Transactional(rollbackFor = Exception.class)
@@ -305,7 +294,7 @@ public class UserService {
             String plainPwd = passwordUtil.decodeRsaPassword(userEntity.getPassword());
             userEntity.setPassword(passwordUtil.encode(plainPwd));
         }
-        JwtUserEntity currentUser = getUserInfo();
+        JwtUserEntity currentUser = SecurityUtil.getUserInfo();
         userEntity.setCreateUserId(currentUser.getId());
         userEntity.setCreateUserName(currentUser.getUsername());
         userEntity.setUpdateUserId(currentUser.getId());
@@ -320,6 +309,7 @@ public class UserService {
     /**
      * 更新用户信息
      * 采用乐观锁机制：version + retry
+     *
      * @param userEntity 用户实体
      * @return 更新行数
      */
@@ -330,17 +320,21 @@ public class UserService {
             throw new BusinessException(PARAMETER_MISSING.getCode(), "User ID cannot be null");
         }
 
-        Integer version = userMapper.selectVersionById(userEntity.getId());
-        if (Objects.isNull(version)) {
+        Long userId = userEntity.getId();
+        UserWebEntity current = userMapper.selectByPrimaryKey(userId);
+        if (current == null) {
             throw new BusinessException(USER_NOT_EXIST.getCode(), USER_NOT_EXIST.getMessage());
         }
 
-        userEntity.setVersion(version);
-        userEntity.setUpdateTime(LocalDateTime.now());
-        
-        int rows = userMapper.updateUserInfoWithVersion(userEntity);
+        Integer oldVersion = current.getVersion();
+        BeanCopyUtils.copyNonNullProperties(userEntity, current);
+
+        current.setVersion(oldVersion);
+        current.setUpdateTime(LocalDateTime.now());
+
+        int rows = userMapper.updateUserInfoWithVersion(current);
         if (rows == 0) {
-            log.warn("Optimistic lock failure for userId {}", userEntity.getId());
+            log.warn("Optimistic lock failure for userId {}", userId);
             throw new OptimisticLockingFailureException("User data has been modified, please retry");
         }
         return rows;
@@ -348,6 +342,7 @@ public class UserService {
 
     /**
      * 批量删除用户（逻辑删除）
+     *
      * @param ids 用户ID列表
      * @return 更新行数
      */
@@ -363,6 +358,7 @@ public class UserService {
 
     /**
      * 批量重置密码
+     *
      * @param ids 用户ID列表
      * @return 更新行数
      */
@@ -372,9 +368,8 @@ public class UserService {
         example.createCriteria().andIdIn(ids);
         UserWebEntity update = new UserWebEntity();
         // Default password logic here, assumed 123456
-        update.setPassword(passwordUtil.encode("123456")); 
+        update.setPassword(passwordUtil.encode("123456"));
         update.setUpdateTime(LocalDateTime.now());
         return userMapper.updateByExampleSelective(update, example);
     }
-
 }

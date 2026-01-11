@@ -146,9 +146,6 @@ public class TokenHelper extends UserTokenHelper {
         if (principal instanceof UserDetails) {
             // 如果是UserDetails对象，直接获取用户名
             return ((UserDetails) principal).getUsername();
-        } else if (principal instanceof String) {
-            // 如果是字符串，直接返回（可能是用户名）
-            return (String) principal;
         } else {
             log.warn("Unsupported principal type: {}, permission denied", principal.getClass().getName());
             throw new BusinessException(PERMISSION_DENIED.getCode(), "Unsupported principal type: " + principal.getClass().getName());

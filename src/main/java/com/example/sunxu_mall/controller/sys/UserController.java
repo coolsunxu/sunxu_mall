@@ -1,11 +1,13 @@
 package com.example.sunxu_mall.controller.sys;
 
+import com.example.sunxu_mall.annotation.ExcelExport;
 import com.example.sunxu_mall.annotation.NoLogin;
 import com.example.sunxu_mall.convert.user.UserStructMapper;
 import com.example.sunxu_mall.dto.user.UserCreateDTO;
 import com.example.sunxu_mall.dto.user.UserQueryDTO;
 import com.example.sunxu_mall.dto.user.UserUpdateDTO;
 import com.example.sunxu_mall.entity.sys.web.UserWebEntity;
+import com.example.sunxu_mall.enums.ExcelBizTypeEnum;
 import com.example.sunxu_mall.model.ResponsePageEntity;
 import com.example.sunxu_mall.service.sys.UserService;
 import com.example.sunxu_mall.vo.user.UserVO;
@@ -15,6 +17,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 import java.util.List;
@@ -111,16 +114,11 @@ public class UserController {
         return userService.resetPwd(ids);
     }
 
-//    /**
-//     * 导出用户数据
-//     *
-//     * @return 影响行数
-//     */
-//    // @ExcelExport(ExcelBizTypeEnum.USER)
-//    @NoLogin
-//    @Operation(summary = "导出用户数据", description = "导出用户数据")
-//    @PostMapping("/export")
-//    public void export(HttpServletResponse response, UserQueryDTO userQueryDTO) throws IOException {
-//        userService.export(response, userQueryDTO);
-//    }
+    /**
+     * 导出用户数据, 通过注解异步实现
+     */
+    @ExcelExport(ExcelBizTypeEnum.USER)
+    @Operation(summary = "导出用户数据", description = "导出用户数据")
+    @PostMapping("/export")
+    public void export(@RequestBody UserQueryDTO userQueryDTO) {}
 }

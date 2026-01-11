@@ -121,5 +121,5 @@ public interface CommonTaskEntityMapper {
      */
     int updateByPrimaryKey(CommonTaskEntity row);
 
-    int updateStatusWithVersion(CommonTaskEntity row);
+    int updateTaskWithVersion(CommonTaskEntity row);
 }
