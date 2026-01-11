@@ -1,19 +1,14 @@
 package com.example.sunxu_mall.dto.user;
 
+import com.example.sunxu_mall.dto.BasePageQuery;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import java.io.Serializable;
 
 @Data
 @Schema(description = "User Query DTO")
-public class UserQueryDTO implements Serializable {
+public class UserQueryDTO extends BasePageQuery {
     private static final long serialVersionUID = 1L;
-
-    @Schema(description = "Page number", example = "1")
-    private Integer pageNum = 1;
-
-    @Schema(description = "Page size", example = "10")
-    private Integer pageSize = 10;
 
     @Schema(description = "Username")
     private String userName;

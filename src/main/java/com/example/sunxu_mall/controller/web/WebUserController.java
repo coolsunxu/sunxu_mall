@@ -7,6 +7,7 @@ import com.example.sunxu_mall.entity.auth.JwtUserEntity;
 import com.example.sunxu_mall.entity.auth.TokenEntity;
 import com.example.sunxu_mall.entity.sys.web.UserWebEntity;
 import com.example.sunxu_mall.service.sys.UserService;
+import com.example.sunxu_mall.util.SecurityUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.validation.annotation.Validated;
@@ -35,7 +36,7 @@ public class WebUserController {
      */
     @GetMapping(value = "/info")
     public JwtUserEntity getUserInfo() {
-        return userService.getUserInfo();
+        return SecurityUtil.getUserInfo();
     }
 
     /**

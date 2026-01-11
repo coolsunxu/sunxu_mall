@@ -48,3 +48,10 @@ export function deleteUserByIds(ids: number[]): Promise<number> {
 export function resetUserPwd(ids: number[]): Promise<number> {
   return request.post('/user/resetPwd', ids)
 }
+
+/**
+ * 导出用户数据
+ */
+export function exportUser(data: UserQueryDTO): Promise<void> {
+  return request.post('/user/export', data)
+}

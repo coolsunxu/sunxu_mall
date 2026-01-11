@@ -34,6 +34,7 @@
         <el-button class="filter-item" size="small" type="primary" icon="Plus" @click="handleAdd">新增</el-button>
         <el-button class="filter-item" size="small" type="danger" icon="Delete" :disabled="selections.length === 0" @click="handleBatchDelete">批量删除</el-button>
         <el-button class="filter-item" size="small" type="warning" icon="RefreshLeft" :disabled="selections.length === 0" @click="handleResetPwd">重置密码</el-button>
+        <el-button class="filter-item" size="small" type="success" icon="Download" @click="handleExport">导出</el-button>
         <el-button class="filter-item" size="small" type="info" icon="Refresh" @click="fetchData">刷新</el-button>
       </div>
     </div>
@@ -152,7 +153,8 @@ import {
   insertUser, 
   updateUser, 
   deleteUserByIds, 
-  resetUserPwd 
+  resetUserPwd,
+  exportUser
 } from '@/api/user'
 import { encrypt } from '@/utils/rsa'
 import type { UserVO, UserQueryDTO, UserCreateDTO, UserUpdateDTO } from '@/types'
@@ -358,6 +360,16 @@ const handleResetPwd = () => {
     await resetUserPwd(ids)
     ElMessage.success('重置密码成功，新密码为 123456')
   })
+}
+
+// 导出
+const handleExport = async () => {
+  try {
+    await exportUser(query)
+    ElMessage.success('导出任务已提交，请留意右上角通知')
+  } catch (error) {
+    console.error(error)
+  }
 }
 
 onMounted(() => {

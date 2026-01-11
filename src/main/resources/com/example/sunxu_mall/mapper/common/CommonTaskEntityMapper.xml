@@ -509,7 +509,7 @@
       request_param = #{requestParam,jdbcType=LONGVARCHAR}
     where id = #{id,jdbcType=BIGINT}
   </update>
-  <update id="updateStatusWithVersion" parameterType="com.example.sunxu_mall.entity.common.CommonTaskEntity">
+  <update id="updateTaskWithVersion" parameterType="com.example.sunxu_mall.entity.common.CommonTaskEntity">
     update common_task
     <set>
       <if test="name != null">

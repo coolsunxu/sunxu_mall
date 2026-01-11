@@ -47,13 +47,61 @@
       <el-header class="header">
         <div class="header-content">
           <span>欢迎回来，{{ userInfo?.username || '用户' }}！</span>
-          <el-button 
-            type="text" 
-            @click="handleLogout"
-            :loading="loading"
-          >
-            {{ loading ? '退出中...' : '退出登录' }}
-          </el-button>
+          <div class="right-menu">
+            <!-- 通知中心 -->
+            <el-popover
+              placement="bottom"
+              :width="300"
+              trigger="click"
+            >
+              <template #reference>
+                <div class="notify-container">
+                  <el-badge :value="unreadCount" :hidden="unreadCount === 0" class="item">
+                    <el-icon class="bell-icon" :size="20"><Bell /></el-icon>
+                  </el-badge>
+                </div>
+              </template>
+              
+              <div class="notify-list">
+                <div class="notify-header">
+                  <span>通知中心</span>
+                  <el-button link type="primary" size="small" @click="handleClearNotify">清空</el-button>
+                </div>
+                <el-divider style="margin: 10px 0" />
+                
+                <div v-if="notifications.length === 0" class="notify-empty">
+                  暂无通知
+                </div>
+                
+                <div v-else class="notify-scroll">
+                  <div 
+                    v-for="item in notifications" 
+                    :key="item.id" 
+                    class="notify-item"
+                    :class="{ 'unread': !item.read }"
+                  >
+                    <div class="notify-title">
+                      <el-tag size="small" :type="item.type">{{ item.type === 'success' ? '成功' : '通知' }}</el-tag>
+                      <span class="title-text">{{ item.title }}</span>
+                      <span class="time">{{ item.time }}</span>
+                    </div>
+                    <div class="notify-content">{{ item.content }}</div>
+                    <div class="notify-action" v-if="item.data?.fileUrl">
+                      <el-button link type="primary" size="small" @click="handleDownload(item.data.fileUrl)">点击下载</el-button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </el-popover>
+
+            <el-button 
+              type="text" 
+              @click="handleLogout"
+              :loading="loading"
+            >
+              {{ loading ? '退出中...' : '退出登录' }}
+            </el-button>
+          </div>
         </div>
       </el-header>
       <el-main>
@@ -69,16 +117,22 @@ import { computed, onMounted, ref } from 'vue'
 import { ElMessageBox, ElMessage } from 'element-plus'
 import { useMenuStore } from '../stores/menu'
 import { useUserStore } from '../stores/user'
+import { useNotifyStore } from '../stores/notify'
+import { initWebSocket, closeWebSocket } from '@/utils/websocket'
 
 const router = useRouter()
 const menuStore = useMenuStore()
 const userStore = useUserStore()
+const notifyStore = useNotifyStore()
 const loading = ref(false)
 
 // 获取菜单树数据
 const menuTree = computed(() => menuStore.menuTree)
 // 获取用户信息
 const userInfo = computed(() => userStore.userInfo)
+// 通知数据
+const notifications = computed(() => notifyStore.notifications)
+const unreadCount = computed(() => notifyStore.unreadCount)
 
 // 页面加载时获取菜单和用户信息
 onMounted(async () => {
@@ -91,10 +145,23 @@ onMounted(async () => {
     if (!userInfo.value) {
       await userStore.checkLoginStatus()
     }
+    
+    // 初始化WebSocket
+    if (userInfo.value && userInfo.value.id) {
+      initWebSocket(userInfo.value.id)
+    }
   } catch (error) {
     console.error('获取菜单或用户信息失败:', error)
   }
 })
+
+const handleClearNotify = () => {
+  notifyStore.clearNotifications()
+}
+
+const handleDownload = (url: string) => {
+  window.open(url, '_blank')
+}
 
 const handleLogout = async () => {
   try {
@@ -108,6 +175,9 @@ const handleLogout = async () => {
     loading.value = true
     // 调用logout方法
     await userStore.logout()
+    
+    // 关闭WebSocket
+    closeWebSocket()
     
     ElMessage.success('退出登录成功')
     // 跳转到登录页
@@ -160,5 +230,76 @@ const handleLogout = async () => {
   align-items: center;
   justify-content: space-between;
   width: 100%;
+}
+
+.right-menu {
+  display: flex;
+  align-items: center;
+}
+
+.notify-container {
+  margin-right: 20px;
+  cursor: pointer;
+  height: 30px;
+  display: flex;
+  align-items: center;
+}
+
+.bell-icon {
+  color: #606266;
+}
+
+.bell-icon:hover {
+  color: #409eff;
+}
+
+.notify-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 5px;
+}
+
+.notify-scroll {
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.notify-item {
+  padding: 10px;
+  border-bottom: 1px solid #EBEEF5;
+}
+
+.notify-item:last-child {
+  border-bottom: none;
+}
+
+.notify-title {
+  display: flex;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.title-text {
+  font-weight: bold;
+  margin-left: 5px;
+  flex: 1;
+}
+
+.time {
+  font-size: 12px;
+  color: #909399;
+}
+
+.notify-content {
+  font-size: 13px;
+  color: #606266;
+  margin-bottom: 5px;
+}
+
+.notify-empty {
+  text-align: center;
+  color: #909399;
+  padding: 20px 0;
 }
 </style>

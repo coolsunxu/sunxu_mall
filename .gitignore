@@ -46,7 +46,6 @@ build/
 /dist/
 /nbdist/
 /.nb-gradle/
-build/
 !**/src/main/**/build/
 !**/src/test/**/build/
 
@@ -93,7 +92,6 @@ sunxu_mall_web/node_modules/
 ### sunxu_mall_web specific ###
 # Logs
 logs
-*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -108,8 +106,6 @@ dist-ssr
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
-.idea
-.DS_Store
 *.suo
 *.ntvs*
 *.njsproj
@@ -123,3 +119,7 @@ src/main/resources/application-secret.yaml
 src/main/resources/application-secret.yml
 
 susan_mall_web
+
+upload
+
+temp

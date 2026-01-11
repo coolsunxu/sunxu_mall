@@ -119,7 +119,7 @@ public class SpringSecurityConfig implements ApplicationContextAware {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         initNoLogin(applicationContext);
         return http
-                // 启用CORS
+                // 启用 CORS
                 .cors()
                 .and()
                 // 禁用 CSRF
@@ -145,8 +145,11 @@ public class SpringSecurityConfig implements ApplicationContextAware {
                         "/*.html",
                         "/**/*.html",
                         "/**/*.css",
-                        "/**/*.js",
-                        "/websocket/**",
+                        "/**/*.js"
+                ).permitAll()
+                .antMatchers(
+                        "/ws/**",
+                        "/files/**",
                         "/job/**",
                         "/init/**"
                 ).permitAll()
