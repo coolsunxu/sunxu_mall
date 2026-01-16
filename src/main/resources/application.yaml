@@ -32,7 +32,7 @@ spring:
 
 # RocketMQ 配置
 rocketmq:
-  name-server: 127.0.0.1:9876
+  name-server: 117.72.88.11:9876
   producer:
     group: mall-rocket-producer-group
     send-message-timeout: 3000
@@ -85,6 +85,12 @@ mall:
           queue-capacity: 100
           keep-alive-seconds: 60
           thread-name-prefix: "async-login-"
+        common:
+          core-size: 2
+          max-size: 5
+          queue-capacity: 200
+          keep-alive-seconds: 60
+          thread-name-prefix: "async-common-"
     tokenExpireTimeInRecord: 3600
     # 验证码过期时间（秒）
     captchaExpireSecond: 300
@@ -96,8 +102,8 @@ mall:
       privateKey: ${PASSWORD_PRIVATE_KEY:dummy_private_key}
       publicKey: ${PASSWORD_PUBLIC_KEY:dummy_public_key}
   task:
-    # excel导出定时任务cron表达式，默认每10秒执行一次
-    excel-export-cron: "0/10 * * * * ?"
+    # excel导出定时任务cron表达式，每5分钟执行一次（兜底策略）
+    excel-export-cron: "0 0/5 * * * ?"
     # IP城市查询配置（使用 @ConditionalOnProperty 根据此配置自动选择服务实现）
     ip-city:
       # 高德API配置（生产环境建议在 application-secret.yaml 中配置密钥）
@@ -131,7 +137,7 @@ ok:
 
 # 文件上传配置
 upload:
-  mode: local # local, qiniu, s3
+  mode: qiniu # local, qiniu, s3
   local:
     path: ./upload/
     domain: http://localhost:8011/files
@@ -140,6 +146,7 @@ upload:
     secret-key: ${QINIU_SECRET_KEY}
     bucket: ${QINIU_BUCKET}
     domain: ${QINIU_DOMAIN}
+    private-bucket: true # 开启私有空间支持
   s3:
     access-key: ${AWS_ACCESS_KEY}
     secret-key: ${AWS_SECRET_KEY}

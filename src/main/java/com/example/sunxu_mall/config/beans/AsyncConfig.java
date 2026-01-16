@@ -44,6 +44,33 @@ public class AsyncConfig implements AsyncConfigurer {
         return getThreadPoolTaskExecutor(config);
     }
 
+    @Bean(name = "commonTaskExecutor")
+    public Executor commonTaskExecutor() {
+        ThreadPoolConfig.PoolConfig config = null;
+        if (threadPoolProperties.getPools() != null) {
+            config = threadPoolProperties.getPools().get("common");
+        }
+
+        if (Objects.isNull(config)) {
+            log.warn("Thread pool configuration 'common' is missing, using default.");
+            config = new ThreadPoolConfig.PoolConfig();
+            config.setCoreSize(2);
+            config.setMaxSize(5);
+            config.setQueueCapacity(200);
+            config.setKeepAliveSeconds(60);
+            config.setThreadNamePrefix("async-common-");
+        }
+
+        log.info("Initializing commonTaskExecutor with config: {}", config);
+
+        return getThreadPoolTaskExecutor(config);
+    }
+
+    @Override
+    public Executor getAsyncExecutor() {
+        return commonTaskExecutor();
+    }
+
     @NotNull
     private static ThreadPoolTaskExecutor getThreadPoolTaskExecutor(ThreadPoolConfig.PoolConfig config) {
         ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();

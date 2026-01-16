@@ -33,7 +33,7 @@ import java.util.Date;
 @Service
 @RequiredArgsConstructor
 @ConditionalOnProperty(name = "upload.mode", havingValue = "qiniu")
-public class QiniuUploadServiceImpl implements UploadService {
+public class QiNiuUploadServiceImpl implements UploadService {
 
     private final UploadConfig properties;
     private UploadManager uploadManager;
@@ -76,6 +76,12 @@ public class QiniuUploadServiceImpl implements UploadService {
                 domain = domain + "/";
             }
             String downloadUrl = domain + putRet.key;
+
+            // 如果是私有空间，生成带签名的下载链接
+            if (properties.getQiniu().isPrivateBucket()) {
+                // 默认 1 小时过期
+                downloadUrl = auth.privateDownloadUrl(downloadUrl, 3600);
+            }
 
             return FileDTO.builder()
                     .originalName(originalFilename)

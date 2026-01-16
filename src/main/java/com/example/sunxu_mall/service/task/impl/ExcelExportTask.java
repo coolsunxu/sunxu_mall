@@ -13,7 +13,7 @@ import com.example.sunxu_mall.exception.BusinessException;
 import com.example.sunxu_mall.service.BaseService;
 import com.example.sunxu_mall.service.common.CommonNotifyService;
 import com.example.sunxu_mall.service.common.CommonTaskService;
-import com.example.sunxu_mall.service.mq.IMqService;
+import com.example.sunxu_mall.mq.producer.MessageProducer;
 import com.example.sunxu_mall.service.task.IAsyncTask;
 import com.example.sunxu_mall.util.DateFormatUtil;
 import com.example.sunxu_mall.util.FillUserUtil;
@@ -36,16 +36,16 @@ import static com.example.sunxu_mall.constant.NumberConstant.NUMBER_3;
 public class ExcelExportTask implements IAsyncTask {
 
     private final CommonTaskService commonTaskService;
-    private final IMqService iMqService;
+    private final MessageProducer messageProducer;
     private final CommonNotifyService commonNotifyService;
 
     public ExcelExportTask(
             CommonTaskService commonTaskService,
-            IMqService iMqService,
+            MessageProducer messageProducer,
             CommonNotifyService commonNotifyService
     ) {
         this.commonTaskService = commonTaskService;
-        this.iMqService = iMqService;
+        this.messageProducer = messageProducer;
         this.commonNotifyService = commonNotifyService;
     }
 
@@ -126,11 +126,16 @@ public class ExcelExportTask implements IAsyncTask {
         }
 
         // 发送通知
-        iMqService.send(MqMessage.builder()
-                .eventType(TaskTypeEnum.EXPORT_EXCEL.getDesc())
-                .businessKey(String.valueOf(commonTaskEntity.getId()))
-                .content(content)
-                .build());
+        messageProducer.send(
+                com.example.sunxu_mall.constant.MQConstant.MALL_COMMON_TASK_TOPIC, // 或者定义一个专门的通知 Topic
+                "TAG_NOTIFICATION",
+                String.valueOf(commonTaskEntity.getId()),
+                MqMessage.builder()
+                        .eventType(TaskTypeEnum.EXPORT_EXCEL.getDesc())
+                        .businessKey(String.valueOf(commonTaskEntity.getId()))
+                        .content(content)
+                        .build()
+        );
 
     }
 

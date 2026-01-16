@@ -1,0 +1,55 @@
+package com.example.sunxu_mall.mq.consumer;
+
+import cn.hutool.json.JSONUtil;
+import com.example.sunxu_mall.dto.mq.MqMessage;
+import com.example.sunxu_mall.dto.websocket.ExportExcelDTO;
+import com.example.sunxu_mall.enums.TaskTypeEnum;
+import com.example.sunxu_mall.websocket.WebSocketServer;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang3.StringUtils;
+import org.springframework.stereotype.Component;
+
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * @author sunxu
+ * @description 通知消息消费逻辑委托类 (WebSocket推送等)
+ */
+@Slf4j
+@Component
+public class NotificationConsumerDelegate {
+
+    public void handleMessage(MqMessage message, String topic) {
+        if (message == null) {
+            return;
+        }
+        log.info("Notification处理业务事件: topic={}, type={}, key={}", topic, message.getEventType(), message.getBusinessKey());
+
+        // 处理 Excel 导出完成通知
+        if (TaskTypeEnum.EXPORT_EXCEL.getDesc().equals(message.getEventType())) {
+            handleExcelExportNotification(message);
+        }
+    }
+
+    private void handleExcelExportNotification(MqMessage message) {
+        log.info("Notification - 处理Excel导出完成推送...");
+        if (StringUtils.isBlank((CharSequence) message.getContent())) {
+            return;
+        }
+
+        try {
+            ExportExcelDTO dto = JSONUtil.toBean(message.getContent().toString(), ExportExcelDTO.class);
+            if (dto != null && dto.getUserId() != null) {
+                Map<String, Object> resp = new HashMap<>();
+                resp.put("type", "EXPORT_EXCEL");
+                resp.put("timestamp", System.currentTimeMillis());
+                resp.put("data", dto);
+
+                WebSocketServer.sendObject(String.valueOf(dto.getUserId()), resp);
+            }
+        } catch (Exception e) {
+            log.error("WebSocket推送失败", e);
+        }
+    }
+}

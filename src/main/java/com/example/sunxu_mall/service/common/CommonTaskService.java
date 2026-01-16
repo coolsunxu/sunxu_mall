@@ -6,6 +6,7 @@ import com.example.sunxu_mall.enums.TaskStatusEnum;
 import com.example.sunxu_mall.exception.BusinessException;
 import com.example.sunxu_mall.mapper.common.CommonTaskEntityMapper;
 import com.example.sunxu_mall.util.BeanCopyUtils;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.retry.annotation.Backoff;
@@ -13,19 +14,20 @@ import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
+
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class CommonTaskService {
 
     private final CommonTaskEntityMapper commonTaskEntityMapper;
-
-    public CommonTaskService(CommonTaskEntityMapper commonTaskEntityMapper) {
-        this.commonTaskEntityMapper = commonTaskEntityMapper;
-    }
+    private final com.example.sunxu_mall.mq.producer.MessageProducer messageProducer;
 
     /**
      * 查询所有待处理的任务
@@ -41,6 +43,23 @@ public class CommonTaskService {
     }
 
     /**
+     * 查询超时未处理的任务 (僵尸任务)
+     *
+     * @param beforeTime 在此时间之前创建的任务
+     * @return 待处理任务列表
+     */
+    public List<CommonTaskEntity> selectStaleWaitingTasks(LocalDateTime beforeTime) {
+        CommonTaskEntityExample example = new CommonTaskEntityExample();
+        example.createCriteria()
+                .andStatusEqualTo(TaskStatusEnum.WAITING.getCode())
+                .andIsDelEqualTo(false)
+                .andCreateTimeLessThan(beforeTime);
+        // 按创建时间升序，优先处理旧任务
+        example.setOrderByClause("create_time asc");
+        return commonTaskEntityMapper.selectByExample(example);
+    }
+
+    /**
      * 创建定时任务
      *
      * @param task 定时任务
@@ -48,6 +67,22 @@ public class CommonTaskService {
     @Transactional(rollbackFor = Exception.class)
     public void insert(CommonTaskEntity task) {
         commonTaskEntityMapper.insertSelective(task);
+        // 注册事务同步回调，确保事务提交后再发送消息，避免消费者查询不到数据
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                try {
+                    messageProducer.send(
+                            com.example.sunxu_mall.constant.MQConstant.MALL_COMMON_TASK_TOPIC,
+                            com.example.sunxu_mall.constant.MQConstant.TAG_EXCEL_EXPORT,
+                            String.valueOf(task.getId()),
+                            task.getId()
+                    );
+                } catch (Exception e) {
+                    log.error("Failed to send MQ message for task: {}", task.getId(), e);
+                }
+            }
+        });
     }
 
     /**

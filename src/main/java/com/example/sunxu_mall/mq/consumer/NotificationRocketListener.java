@@ -1,44 +1,46 @@
-package com.example.sunxu_mall.job.mq;
+package com.example.sunxu_mall.mq.consumer;
 
 import com.example.sunxu_mall.dto.mq.MqMessage;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
 import org.apache.rocketmq.spring.core.RocketMQListener;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
+/**
+ * @author sunxu
+ * @description RocketMQ 通知消费者 (迁移自 RocketConsumerJob)
+ */
 @Slf4j
 @Component
 @ConditionalOnProperty(name = "app.mq.type", havingValue = "rocket")
 @RocketMQMessageListener(topic = "${app.mq.rocket.topic:mall-topic}", consumerGroup = "${rocketmq.consumer.group:mall-rocket-group}")
-public class RocketConsumerJob implements RocketMQListener<MqMessage> {
+@RequiredArgsConstructor
+public class NotificationRocketListener implements RocketMQListener<MqMessage> {
+
+    private final NotificationConsumerDelegate delegate;
 
     @Override
     public void onMessage(MqMessage message) {
-        log.info("RocketMQ消费者(Default Topic)收到消息: {}", message);
-        handleMessage(message);
+        log.info("RocketMQ Notification消费者(Default Topic)收到消息: {}", message);
+        delegate.handleMessage(message, "ROCKET_DEFAULT_TOPIC");
     }
 
-    private void handleMessage(MqMessage message) {
-        log.info("RocketMQ处理业务事件: type={}, key={}", message.getEventType(), message.getBusinessKey());
-        switch (message.getEventType()) {
-            default:
-                log.warn("RocketMQ - 未知事件类型: {}", message.getEventType());
-        }
-    }
-    
     /**
      * 内部类监听第二个 Topic
-     * RocketMQ 一个类对应一个 Topic Listener，使用内部类是一种组织方式
      */
     @Component
     @ConditionalOnProperty(name = "app.mq.type", havingValue = "rocket")
     @RocketMQMessageListener(topic = "${app.mq.rocket.topic2:mall-topic-2}", consumerGroup = "${rocketmq.consumer.group:mall-rocket-group}-2")
-    public static class RocketConsumerJob2 implements RocketMQListener<MqMessage> {
+    @RequiredArgsConstructor
+    public static class NotificationRocketListener2 implements RocketMQListener<MqMessage> {
+        private final NotificationConsumerDelegate delegate;
+
         @Override
         public void onMessage(MqMessage message) {
-            log.info("RocketMQ消费者(Topic 2)收到消息: {}", message);
-            // 这里可以复用外部类的逻辑或者写新的逻辑
+            log.info("RocketMQ Notification消费者(Topic 2)收到消息: {}", message);
+            delegate.handleMessage(message, "ROCKET_TOPIC_2");
         }
     }
 }

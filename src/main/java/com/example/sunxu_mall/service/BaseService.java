@@ -106,7 +106,17 @@ public abstract class BaseService<K, V extends BasePageQuery> {
             }
         }
 
-        return uploadFileToOss(fileName, file, file.getAbsolutePath());
+        try {
+            return uploadFileToOss(fileName, file, file.getAbsolutePath());
+        } finally {
+            // 删除临时文件，防止磁盘写满
+            if (file != null && file.exists()) {
+                boolean deleted = file.delete();
+                if (!deleted) {
+                    log.warn("Failed to delete temp file: {}", file.getAbsolutePath());
+                }
+            }
+        }
     }
 
     private File prepareExportFile(String fileName) {

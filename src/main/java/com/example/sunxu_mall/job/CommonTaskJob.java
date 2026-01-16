@@ -11,6 +11,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 
@@ -27,13 +28,15 @@ public class CommonTaskJob {
     private final ExcelExportTask excelExportTask;
 
     /**
-     * 定时轮询待处理任务
+     * 定时轮询待处理任务 (兜底机制)
      * cron 表达式从配置文件读取
      */
-    @Scheduled(cron = "${mall.task.excel-export-cron:0/10 * * * * ?}")
+    @Scheduled(cron = "${mall.task.excel-export-cron:0 0/5 * * * ?}")
     public void executeWaitingTasks() {
-        // 1. 查询所有待处理 (WAITING) 的任务
-        List<CommonTaskEntity> waitingTasks = commonTaskService.selectWaitingTasks();
+        // 1. 查询所有超时未处理 (WAITING) 的任务 (10分钟前)
+        // 避免与 MQ 消费者产生竞争
+        LocalDateTime thresholdTime = LocalDateTime.now().minusMinutes(10);
+        List<CommonTaskEntity> waitingTasks = commonTaskService.selectStaleWaitingTasks(thresholdTime);
 
         if (CollectionUtils.isEmpty(waitingTasks)) {
             return;

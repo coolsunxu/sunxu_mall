@@ -39,6 +39,10 @@ public class UploadConfig {
         private String secretKey;
         private String bucket;
         private String domain;
+        /**
+         * 是否为私有空间
+         */
+        private boolean privateBucket = false;
     }
 
     @Data
