@@ -28,12 +28,12 @@ public class NotificationKafkaListener {
         Optional<?> kafkaMessage = Optional.ofNullable(record.value());
         if (kafkaMessage.isPresent()) {
             Object message = kafkaMessage.get();
-            log.info("Kafka Notification消费者收到消息 (Topic={}): {}", record.topic(), message);
+            log.info("Kafka Notification Consumer received message (Topic={}): {}", record.topic(), message);
             try {
                 MqMessage mqMessage = JSONUtil.toBean(message.toString(), MqMessage.class);
                 delegate.handleMessage(mqMessage, record.topic());
             } catch (Exception e) {
-                log.error("Kafka消息解析失败", e);
+                log.error("Kafka message parsing failed", e);
             }
         }
     }

@@ -3,17 +3,18 @@ package com.example.sunxu_mall.aspect;
 import cn.hutool.core.util.ArrayUtil;
 import cn.hutool.json.JSONUtil;
 import com.example.sunxu_mall.annotation.ExcelExport;
-import com.example.sunxu_mall.entity.common.CommonTaskEntity;
+import com.example.sunxu_mall.constant.MQConstant;
+import com.example.sunxu_mall.dto.common.CommonTaskRequestDTO;
+import com.example.sunxu_mall.entity.auth.JwtUserEntity;
 import com.example.sunxu_mall.enums.ExcelBizTypeEnum;
-import com.example.sunxu_mall.enums.TaskStatusEnum;
-import com.example.sunxu_mall.enums.TaskTypeEnum;
-import com.example.sunxu_mall.service.common.CommonTaskService;
-import com.example.sunxu_mall.util.FillUserUtil;
+import com.example.sunxu_mall.mq.producer.MessageProducer;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
 import org.aspectj.lang.annotation.Pointcut;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 import java.lang.reflect.Method;
@@ -29,10 +30,10 @@ import java.lang.reflect.Method;
 @Component
 public class CommonTaskAspect {
 
-    private final CommonTaskService commonTaskService;
+    private final MessageProducer messageProducer;
 
-    public CommonTaskAspect(CommonTaskService commonTaskService) {
-        this.commonTaskService = commonTaskService;
+    public CommonTaskAspect(MessageProducer messageProducer) {
+        this.messageProducer = messageProducer;
     }
 
     @Pointcut("@annotation(com.example.sunxu_mall.annotation.ExcelExport)")
@@ -48,30 +49,32 @@ public class CommonTaskAspect {
         if (excelExport != null) {
             ExcelBizTypeEnum excelBizTypeEnum = excelExport.value();
 
-            CommonTaskEntity commonTaskEntity = createCommonTaskEntity(excelBizTypeEnum);
+            CommonTaskRequestDTO.CommonTaskRequestDTOBuilder builder = CommonTaskRequestDTO.builder()
+                    .bizType(excelBizTypeEnum);
+
             Object[] arguments = joinPoint.getArgs();
             if (ArrayUtil.isNotEmpty(arguments)) {
                 Object requestParam = arguments[0];
-                commonTaskEntity.setRequestParam(JSONUtil.toJsonStr(requestParam));
+                builder.paramJson(JSONUtil.toJsonStr(requestParam));
             }
 
-            commonTaskService.insert(commonTaskEntity);
+            // 填充用户信息
+            Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+            if (authentication != null && authentication.getPrincipal() instanceof JwtUserEntity) {
+                JwtUserEntity user = (JwtUserEntity) authentication.getPrincipal();
+                builder.userId(user.getId())
+                        .userName(user.getUsername());
+            }
+
+            CommonTaskRequestDTO dto = builder.build();
+
+            // 发送异步创建请求
+            messageProducer.send(
+                    MQConstant.MALL_COMMON_TASK_CREATE_TOPIC,
+                    MQConstant.TAG_EXCEL_EXPORT_CREATE,
+                    null,
+                    JSONUtil.toJsonStr(dto)
+            );
         }
-    }
-
-
-    private CommonTaskEntity createCommonTaskEntity(ExcelBizTypeEnum excelBizTypeEnum) {
-        CommonTaskEntity commonTaskEntity = new CommonTaskEntity();
-        commonTaskEntity.setName(getTaskName(excelBizTypeEnum));
-        commonTaskEntity.setStatus(TaskStatusEnum.WAITING.getCode());
-        commonTaskEntity.setFailureCount((byte) 0);
-        commonTaskEntity.setType(TaskTypeEnum.EXPORT_EXCEL.getCode());
-        commonTaskEntity.setBizType(excelBizTypeEnum.getCode());
-        FillUserUtil.fillCreateUserInfo(commonTaskEntity);
-        return commonTaskEntity;
-    }
-
-    private String getTaskName(ExcelBizTypeEnum excelBizTypeEnum) {
-        return String.format("导出%s数据", excelBizTypeEnum.getDesc());
     }
 }

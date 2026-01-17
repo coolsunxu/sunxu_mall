@@ -120,5 +120,7 @@ public class UserController {
     @ExcelExport(ExcelBizTypeEnum.USER)
     @Operation(summary = "导出用户数据", description = "导出用户数据")
     @PostMapping("/export")
-    public void export(@RequestBody UserQueryDTO userQueryDTO) {}
+    public void export(@RequestBody UserQueryDTO userQueryDTO) {
+        // Method body is empty as logic is handled by Aspect
+    }
 }

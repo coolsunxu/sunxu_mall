@@ -50,7 +50,9 @@ public enum ErrorCode {
     CONFIG_MISSING(50008, "Missing Required Configuration", 500),
     
     // ====================================== Service Operation Errors ======================================
-    THIRD_PARTY_API_ERROR(50009, "Third-party API Call Failed", 500);
+    THIRD_PARTY_API_ERROR(50009, "Third-party API Call Failed", 500),
+    EXPORT_CONFIG_ERROR(50010, "Export Configuration Error", 500),
+    CLASS_NOT_FOUND_ERROR(50011, "Class Not Found", 500);
     
     // Error code
     private final int code;

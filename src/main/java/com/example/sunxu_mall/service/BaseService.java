@@ -5,7 +5,7 @@ import com.alibaba.excel.EasyExcel;
 import com.alibaba.excel.ExcelWriter;
 import com.alibaba.excel.write.metadata.WriteSheet;
 import com.example.sunxu_mall.dto.BasePageQuery;
-import com.example.sunxu_mall.dto.FileDTO;
+import com.example.sunxu_mall.dto.file.FileDTO;
 import com.example.sunxu_mall.exception.BusinessException;
 import com.example.sunxu_mall.model.ResponsePageEntity;
 import com.example.sunxu_mall.util.FileUtil;
@@ -98,7 +98,7 @@ public abstract class BaseService<K, V extends BasePageQuery> {
             fillExcelData(excelWriter, query, totalCount, clazz);
 
         } catch (Exception e) {
-            log.warn("导出Excel文件异常", e);
+            log.warn("Export Excel file exception", e);
             throw new BusinessException("导出Excel文件异常: " + e.getMessage());
         } finally {
             if (excelWriter != null) {
@@ -145,7 +145,7 @@ public abstract class BaseService<K, V extends BasePageQuery> {
         try {
             return Class.forName(clazzName);
         } catch (ClassNotFoundException e) {
-            log.warn("数据导出异常，没有找到类:{}", clazzName);
+            log.warn("Data export exception, class not found: {}", clazzName);
             throw new BusinessException(String.format("数据导出异常，没有找到类:%s", clazzName));
         }
     }
@@ -208,7 +208,7 @@ public abstract class BaseService<K, V extends BasePageQuery> {
             FileDTO fileDTO = uploadService.upload(multipartFile, FILE_BIZ_TYPE, FILE_TYPE_EXCEL);
             return fileDTO.getDownloadUrl();
         } catch (Exception e) {
-            log.warn("上传excel文件到oss服务器失败，返回本地路径。原因：{}", e.getMessage());
+            log.warn("Failed to upload excel file to oss server, return local path. Reason: {}", e.getMessage());
             return defaultPath;
         }
     }

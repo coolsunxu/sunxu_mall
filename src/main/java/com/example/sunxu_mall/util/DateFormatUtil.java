@@ -87,7 +87,7 @@ public class DateFormatUtil {
         try {
             return simpleDateFormat.parse(time);
         } catch (ParseException e) {
-            log.info("时间转换错误，原因：", e);
+            log.info("Time conversion error, reason: ", e);
             throw new BusinessException(HttpStatus.BAD_REQUEST.value(), "时间转换错误");
         }
     }

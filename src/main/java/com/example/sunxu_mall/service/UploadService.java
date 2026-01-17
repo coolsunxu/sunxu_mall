@@ -1,6 +1,6 @@
 package com.example.sunxu_mall.service;
 
-import com.example.sunxu_mall.dto.FileDTO;
+import com.example.sunxu_mall.dto.file.FileDTO;
 import org.springframework.web.multipart.MultipartFile;
 
 /**

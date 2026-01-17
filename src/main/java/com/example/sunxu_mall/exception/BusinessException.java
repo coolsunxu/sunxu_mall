@@ -1,5 +1,6 @@
 package com.example.sunxu_mall.exception;
 
+import com.example.sunxu_mall.errorcode.ErrorCode;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
@@ -36,6 +37,11 @@ public class BusinessException extends RuntimeException {
     public BusinessException(String message) {
         this.code = HttpStatus.INTERNAL_SERVER_ERROR.value();
         this.message = message;
+    }
+
+    public BusinessException(ErrorCode errorCode) {
+        this.code = errorCode.getCode();
+        this.message = errorCode.getMessage();
     }
 }
 

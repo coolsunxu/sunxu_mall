@@ -12,7 +12,7 @@ import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 import com.example.sunxu_mall.config.props.UploadConfig;
-import com.example.sunxu_mall.dto.FileDTO;
+import com.example.sunxu_mall.dto.file.FileDTO;
 import com.example.sunxu_mall.exception.BusinessException;
 import com.example.sunxu_mall.service.UploadService;
 import lombok.RequiredArgsConstructor;

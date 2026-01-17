@@ -24,7 +24,7 @@ public class NotificationConsumerDelegate {
         if (message == null) {
             return;
         }
-        log.info("Notification处理业务事件: topic={}, type={}, key={}", topic, message.getEventType(), message.getBusinessKey());
+        log.info("Notification handling business event: topic={}, type={}, key={}", topic, message.getEventType(), message.getBusinessKey());
 
         // 处理 Excel 导出完成通知
         if (TaskTypeEnum.EXPORT_EXCEL.getDesc().equals(message.getEventType())) {
@@ -33,7 +33,7 @@ public class NotificationConsumerDelegate {
     }
 
     private void handleExcelExportNotification(MqMessage message) {
-        log.info("Notification - 处理Excel导出完成推送...");
+        log.info("Notification - Processing Excel export completion push...");
         if (StringUtils.isBlank((CharSequence) message.getContent())) {
             return;
         }
@@ -49,7 +49,7 @@ public class NotificationConsumerDelegate {
                 WebSocketServer.sendObject(String.valueOf(dto.getUserId()), resp);
             }
         } catch (Exception e) {
-            log.error("WebSocket推送失败", e);
+            log.error("WebSocket push failed", e);
         }
     }
 }

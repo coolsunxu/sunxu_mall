@@ -1,4 +1,4 @@
-package com.example.sunxu_mall.dto;
+package com.example.sunxu_mall.dto.file;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;

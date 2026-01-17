@@ -36,16 +36,16 @@ public class RsaKeyGenerator {
         String[] keys = generateRsaKeys();
         
         // 输出密钥对
-        System.out.println("=== RSA密钥对生成结果 ===");
-        System.out.println("私钥 (privateKey):");
+        System.out.println("=== RSA Key Pair Generation Result ===");
+        System.out.println("Private Key (privateKey):");
         System.out.println(keys[0]);
         System.out.println();
-        System.out.println("公钥 (publicKey):");
+        System.out.println("Public Key (publicKey):");
         System.out.println(keys[1]);
         System.out.println("=======================");
         
         // 输出配置文件格式的密钥
-        System.out.println("\n=== 配置文件格式 ===");
+        System.out.println("\n=== Configuration File Format ===");
         System.out.println("mall:");
         System.out.println("  mgt:");
         System.out.println("    password:");

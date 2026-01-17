@@ -1,8 +1,11 @@
 package com.example.sunxu_mall.service.common;
 
+import com.example.sunxu_mall.dto.common.CommonTaskRequestDTO;
 import com.example.sunxu_mall.entity.common.CommonTaskEntity;
 import com.example.sunxu_mall.entity.common.CommonTaskEntityExample;
+import com.example.sunxu_mall.enums.ExcelBizTypeEnum;
 import com.example.sunxu_mall.enums.TaskStatusEnum;
+import com.example.sunxu_mall.enums.TaskTypeEnum;
 import com.example.sunxu_mall.exception.BusinessException;
 import com.example.sunxu_mall.mapper.common.CommonTaskEntityMapper;
 import com.example.sunxu_mall.util.BeanCopyUtils;
@@ -20,6 +23,9 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
+
+import static com.example.sunxu_mall.constant.MQConstant.MALL_COMMON_TASK_TOPIC;
+import static com.example.sunxu_mall.constant.MQConstant.TAG_EXCEL_EXPORT;
 
 @Slf4j
 @Service
@@ -60,6 +66,38 @@ public class CommonTaskService {
     }
 
     /**
+     * 根据请求创建任务（异步削峰用）
+     *
+     * @param dto 任务请求 DTO
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void createTaskFromRequest(CommonTaskRequestDTO dto) {
+        if (dto == null || dto.getBizType() == null) {
+            log.warn("Invalid task request dto");
+            return;
+        }
+
+        ExcelBizTypeEnum bizType = dto.getBizType();
+        CommonTaskEntity commonTaskEntity = CommonTaskEntity.builder()
+                .name(String.format("导出%s数据", bizType.getDesc()))
+                .status(TaskStatusEnum.WAITING.getCode())
+                .failureCount((byte) 0)
+                .type(TaskTypeEnum.EXPORT_EXCEL.getCode())
+                .bizType(bizType.getCode())
+                .requestParam(dto.getParamJson())
+                .createUserId(dto.getUserId())
+                .createUserName(dto.getUserName())
+                .createTime(LocalDateTime.now())
+                .updateTime(LocalDateTime.now())
+                .isDel(false)
+                .version(0)
+                .build();
+
+        // 调用 insert 方法（包含发送执行消息的逻辑）
+        this.insert(commonTaskEntity);
+    }
+
+    /**
      * 创建定时任务
      *
      * @param task 定时任务
@@ -73,13 +111,13 @@ public class CommonTaskService {
             public void afterCommit() {
                 try {
                     messageProducer.send(
-                            com.example.sunxu_mall.constant.MQConstant.MALL_COMMON_TASK_TOPIC,
-                            com.example.sunxu_mall.constant.MQConstant.TAG_EXCEL_EXPORT,
+                            MALL_COMMON_TASK_TOPIC,
+                            TAG_EXCEL_EXPORT,
                             String.valueOf(task.getId()),
                             task.getId()
                     );
                 } catch (Exception e) {
-                    log.error("Failed to send MQ message for task: {}", task.getId(), e);
+                    log.warn("Failed to send MQ message for task: {}", task.getId(), e);
                 }
             }
         });

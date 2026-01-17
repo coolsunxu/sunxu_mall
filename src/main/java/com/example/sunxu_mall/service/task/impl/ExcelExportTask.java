@@ -1,6 +1,7 @@
 package com.example.sunxu_mall.service.task.impl;
 
 import cn.hutool.json.JSONUtil;
+import com.example.sunxu_mall.constant.MQConstant;
 import com.example.sunxu_mall.dto.BasePageQuery;
 import com.example.sunxu_mall.dto.mq.MqMessage;
 import com.example.sunxu_mall.dto.websocket.ExportExcelDTO;
@@ -9,6 +10,7 @@ import com.example.sunxu_mall.entity.common.CommonTaskEntity;
 import com.example.sunxu_mall.enums.ExcelBizTypeEnum;
 import com.example.sunxu_mall.enums.TaskStatusEnum;
 import com.example.sunxu_mall.enums.TaskTypeEnum;
+import com.example.sunxu_mall.errorcode.ErrorCode;
 import com.example.sunxu_mall.exception.BusinessException;
 import com.example.sunxu_mall.service.BaseService;
 import com.example.sunxu_mall.service.common.CommonNotifyService;
@@ -56,106 +58,118 @@ public class ExcelExportTask implements IAsyncTask {
     }
 
     private void doExportExcel(CommonTaskEntity commonTaskEntity) {
+        // 1. 初始化任务状态
+        ExcelBizTypeEnum excelBizTypeEnum = initTaskStatus(commonTaskEntity);
 
-        // 1 设置初始状态
-
-        // 获取类型
-        ExcelBizTypeEnum excelBizTypeEnum = ExcelBizTypeEnum.getByCode(commonTaskEntity.getBizType());
-        //任务开始执行时，状态改成执行中
-        commonTaskEntity.setStatus(TaskStatusEnum.RUNNING.getCode());
-        // 填充操作人员信息
-        FillUserUtil.fillUpdateUserInfoFromCreate(commonTaskEntity);
-
-        commonTaskService.update(commonTaskEntity);
-
-        // 执行导出逻辑
         try {
-            String requestEntity = excelBizTypeEnum.getRequestEntity();
-            Class<?> aClass = null;
-            try {
-                aClass = Class.forName(requestEntity);
-            } catch (ClassNotFoundException e) {
-                log.warn("数据导出异常，没有找到:{}", requestEntity);
-                throw new BusinessException(String.format("数据导出异常，没有找到:%s", requestEntity));
-            }
-            String requestParam = commonTaskEntity.getRequestParam();
-            Object toBean = JSONUtil.toBean(requestParam, aClass);
-            
-            String serviceName = excelBizTypeEnum.getServiceName();
-            if (ObjectUtils.isEmpty(serviceName)) {
-                throw new BusinessException("该业务类型未配置导出服务");
-            }
-            BaseService baseService = SpringBeanUtil.getBean(serviceName);
-            
-            String exportClassName = excelBizTypeEnum.getExportClassName();
-            if (ObjectUtils.isEmpty(exportClassName)) {
-                throw new BusinessException("该业务类型未配置导出实体类");
-            }
+            // 2. 执行导出逻辑
+            String fileUrl = performExport(commonTaskEntity, excelBizTypeEnum);
 
-            String fileName = getFileName(excelBizTypeEnum.getDesc());
-            String fileUrl = baseService.export((BasePageQuery) toBean, fileName, exportClassName);
-            //执行成功
+            // 3. 标记成功
             commonTaskEntity.setFileUrl(fileUrl);
             commonTaskEntity.setStatus(TaskStatusEnum.SUCCESS.getCode());
         } catch (Exception e) {
-            log.warn("数据导出异常，原因：", e);
-            //失败次数加1
-            commonTaskEntity.setFailureCount((byte) (commonTaskEntity.getFailureCount() + 1));
-            //如果失败次数超过3次，则将状态改成失败，后面不再执行
-            if (commonTaskEntity.getFailureCount() >= NUMBER_3) {
-                commonTaskEntity.setStatus(TaskStatusEnum.FAIL.getCode());
-            }
+            // 4. 处理异常
+            handleExportError(commonTaskEntity, e);
         }
 
+        // 5. 完成任务（更新状态、发送通知）
+        finalizeTask(commonTaskEntity);
+    }
+
+    private ExcelBizTypeEnum initTaskStatus(CommonTaskEntity commonTaskEntity) {
+        ExcelBizTypeEnum excelBizTypeEnum = ExcelBizTypeEnum.getByCode(commonTaskEntity.getBizType());
+        // 任务开始执行时，状态改成执行中
+        commonTaskEntity.setStatus(TaskStatusEnum.RUNNING.getCode());
+        // 填充操作人员信息
+        FillUserUtil.fillUpdateUserInfoFromCreate(commonTaskEntity);
+        commonTaskService.update(commonTaskEntity);
+        return excelBizTypeEnum;
+    }
+
+    private String performExport(CommonTaskEntity commonTaskEntity, ExcelBizTypeEnum excelBizTypeEnum) throws Exception {
+        String requestEntity = excelBizTypeEnum.getRequestEntity();
+        Class<?> aClass;
+        try {
+            aClass = Class.forName(requestEntity);
+        } catch (ClassNotFoundException e) {
+            log.warn("Data export exception, class not found: {}", requestEntity);
+            throw new BusinessException(ErrorCode.CLASS_NOT_FOUND_ERROR);
+        }
+
+        String requestParam = commonTaskEntity.getRequestParam();
+        Object toBean = JSONUtil.toBean(requestParam, aClass);
+
+        String serviceName = excelBizTypeEnum.getServiceName();
+        if (ObjectUtils.isEmpty(serviceName)) {
+            throw new BusinessException(ErrorCode.EXPORT_CONFIG_ERROR);
+        }
+        BaseService baseService = SpringBeanUtil.getBean(serviceName);
+
+        String exportClassName = excelBizTypeEnum.getExportClassName();
+        if (ObjectUtils.isEmpty(exportClassName)) {
+            throw new BusinessException(ErrorCode.EXPORT_CONFIG_ERROR);
+        }
+
+        String fileName = getFileName(excelBizTypeEnum.getDesc());
+        return baseService.export((BasePageQuery) toBean, fileName, exportClassName);
+    }
+
+    private void handleExportError(CommonTaskEntity commonTaskEntity, Exception e) {
+        log.warn("Data export exception, reason: ", e);
+        // 失败次数加1
+        commonTaskEntity.setFailureCount((byte) (commonTaskEntity.getFailureCount() + 1));
+        // 如果失败次数超过3次，则将状态改成失败，后面不再执行
+        if (commonTaskEntity.getFailureCount() >= NUMBER_3) {
+            commonTaskEntity.setStatus(TaskStatusEnum.FAIL.getCode());
+        }
+    }
+
+    private void finalizeTask(CommonTaskEntity commonTaskEntity) {
         // 更新任务状态
         commonTaskService.update(commonTaskEntity);
-        CommonNotifyEntity commonNotifyEntity = createNotifyMessage(commonTaskEntity);
+
+        // 构建任务结果 JSON
+        String taskResultJson = buildTaskResultJson(commonTaskEntity);
+
+        // 发送站内信通知
+        CommonNotifyEntity commonNotifyEntity = createNotifyMessage(commonTaskEntity, taskResultJson);
         commonNotifyService.insert(commonNotifyEntity);
 
-        // 构建消息内容
-        String content = "";
-        // 只有成功才构建详细DTO
-        if (TaskStatusEnum.SUCCESS.getCode().equals(commonTaskEntity.getStatus())) {
-            ExportExcelDTO dto = ExportExcelDTO.builder()
-                    .taskId(commonTaskEntity.getId())
-                    .userId(commonTaskEntity.getCreateUserId())
-                    .fileName(commonTaskEntity.getName())
-                    .fileUrl(commonTaskEntity.getFileUrl())
-                    .build();
-            content = JSONUtil.toJsonStr(dto);
+        if (!TaskStatusEnum.SUCCESS.getCode().equals(commonTaskEntity.getStatus())) {
+            return;
         }
 
         // 发送通知
         messageProducer.send(
-                com.example.sunxu_mall.constant.MQConstant.MALL_COMMON_TASK_TOPIC, // 或者定义一个专门的通知 Topic
-                "TAG_NOTIFICATION",
+                MQConstant.MALL_COMMON_TASK_TOPIC,
+                MQConstant.TAG_NOTIFICATION,
                 String.valueOf(commonTaskEntity.getId()),
                 MqMessage.builder()
                         .eventType(TaskTypeEnum.EXPORT_EXCEL.getDesc())
                         .businessKey(String.valueOf(commonTaskEntity.getId()))
-                        .content(content)
+                        .content(taskResultJson)
                         .build()
         );
-
     }
 
 
-    private CommonNotifyEntity createNotifyMessage(CommonTaskEntity commonTaskEntity) {
-        CommonNotifyEntity commonNotifyEntity = new CommonNotifyEntity();
-        commonNotifyEntity.setTitle(TaskTypeEnum.EXPORT_EXCEL.getDesc());
-        commonNotifyEntity.setContent(getContent(commonTaskEntity));
-        commonNotifyEntity.setToUserId(commonTaskEntity.getCreateUserId());
-        commonNotifyEntity.setIsPush(Boolean.FALSE);
-        commonNotifyEntity.setType((byte) 1);
-        commonNotifyEntity.setReadStatus((byte) 0);
-        commonNotifyEntity.setCreateUserId(commonTaskEntity.getCreateUserId());
-        commonNotifyEntity.setCreateUserName(commonTaskEntity.getCreateUserName());
-        commonNotifyEntity.setCreateTime(java.time.LocalDateTime.now());
-        commonNotifyEntity.setIsDel(Boolean.FALSE);
-        return commonNotifyEntity;
+    private CommonNotifyEntity createNotifyMessage(CommonTaskEntity commonTaskEntity, String content) {
+        return CommonNotifyEntity.builder()
+                .title(TaskTypeEnum.EXPORT_EXCEL.getDesc())
+                .content(content)
+                .toUserId(commonTaskEntity.getCreateUserId())
+                .isPush(Boolean.FALSE)
+                .type((byte) 1)
+                .readStatus((byte) 0)
+                .createUserId(commonTaskEntity.getCreateUserId())
+                .createUserName(commonTaskEntity.getCreateUserName())
+                .createTime(java.time.LocalDateTime.now())
+                .isDel(Boolean.FALSE)
+                .build();
     }
 
-    private String getContent(CommonTaskEntity commonTaskEntity) {
+    private String buildTaskResultJson(CommonTaskEntity commonTaskEntity) {
         ExportExcelDTO dto = ExportExcelDTO.builder()
                 .taskId(commonTaskEntity.getId())
                 .userId(commonTaskEntity.getCreateUserId())

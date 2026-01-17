@@ -5,7 +5,7 @@ import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.IdUtil;
 import cn.hutool.core.util.StrUtil;
 import com.example.sunxu_mall.config.props.UploadConfig;
-import com.example.sunxu_mall.dto.FileDTO;
+import com.example.sunxu_mall.dto.file.FileDTO;
 import com.example.sunxu_mall.exception.BusinessException;
 import com.example.sunxu_mall.service.UploadService;
 import lombok.RequiredArgsConstructor;

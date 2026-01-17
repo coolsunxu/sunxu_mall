@@ -23,7 +23,7 @@ public class NotificationRocketListener implements RocketMQListener<MqMessage> {
 
     @Override
     public void onMessage(MqMessage message) {
-        log.info("RocketMQ Notification消费者(Default Topic)收到消息: {}", message);
+        log.info("RocketMQ Notification Consumer (Default Topic) received message: {}", message);
         delegate.handleMessage(message, "ROCKET_DEFAULT_TOPIC");
     }
 
@@ -39,7 +39,7 @@ public class NotificationRocketListener implements RocketMQListener<MqMessage> {
 
         @Override
         public void onMessage(MqMessage message) {
-            log.info("RocketMQ Notification消费者(Topic 2)收到消息: {}", message);
+            log.info("RocketMQ Notification Consumer (Topic 2) received message: {}", message);
             delegate.handleMessage(message, "ROCKET_TOPIC_2");
         }
     }

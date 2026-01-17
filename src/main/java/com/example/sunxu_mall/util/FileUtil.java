@@ -33,7 +33,7 @@ public class FileUtil {
         ) {
             FileCopyUtils.copy(inputStream, outputStream);
         } catch (Exception e) {
-            log.error("File转换MultipartFile失败，原因：", e);
+            log.error("File to MultipartFile conversion failed, reason: ", e);
             throw new BusinessException("File转换MultipartFile失败");
         }
         return new CommonsMultipartFile(fileItem);

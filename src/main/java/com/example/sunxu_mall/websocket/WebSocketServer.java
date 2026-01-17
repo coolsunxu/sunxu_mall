@@ -53,11 +53,11 @@ public class WebSocketServer {
             webSocketMap.put(userId, this);
             addOnlineCount();
         }
-        log.info("用户连接:{}，当前在线人数为:{}", userId, getOnlineCount());
+        log.info("User connected: {}, current online count: {}", userId, getOnlineCount());
         try {
             sendMessage("连接成功");
         } catch (IOException e) {
-            log.error("用户:{}，网络异常", userId);
+            log.error("User: {}, network error", userId);
         }
     }
 
@@ -70,7 +70,7 @@ public class WebSocketServer {
             webSocketMap.remove(userId);
             subOnlineCount();
         }
-        log.info("用户退出:{}，当前在线人数为:{}", userId, getOnlineCount());
+        log.info("User logged out: {}, current online count: {}", userId, getOnlineCount());
     }
 
     /**
@@ -81,7 +81,7 @@ public class WebSocketServer {
      */
     @OnMessage
     public void onMessage(String message, Session session) {
-        log.info("用户消息:{}，报文:{}", userId, message);
+        log.info("User message: {}, payload: {}", userId, message);
         // 可以根据需要处理客户端发送的消息
     }
 
@@ -91,7 +91,7 @@ public class WebSocketServer {
      */
     @OnError
     public void onError(Session session, Throwable error) {
-        log.error("用户错误:{}，原因:{}", this.userId, error.getMessage());
+        log.error("User error: {}, reason: {}", this.userId, error.getMessage());
         error.printStackTrace();
     }
 
@@ -106,16 +106,16 @@ public class WebSocketServer {
      * 发送自定义消息
      */
     public static void sendInfo(String userId, String message) {
-        log.info("发送消息到:{}，报文:{}", userId, message);
+        log.info("Sending message to: {}, payload: {}", userId, message);
         if (userId != null && webSocketMap.containsKey(userId)) {
             try {
                 webSocketMap.get(userId).sendMessage(message);
             } catch (IOException e) {
-                log.error("发送消息到:{} 失败", userId);
+                log.error("Failed to send message to: {}", userId);
                 e.printStackTrace();
             }
         } else {
-            log.warn("用户:{} 不在线，消息未发送", userId);
+            log.warn("User: {} not online, message not sent", userId);
         }
     }
 
