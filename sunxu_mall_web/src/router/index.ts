@@ -35,6 +35,15 @@ const routes: RouteRecordRaw[] = [
           icon: 'user',
         },
       },
+      {
+        path: '/mall/product',
+        name: 'Product',
+        component: () => import('@/views/mall/product/index.vue'),
+        meta: {
+          title: '商品管理',
+          icon: 'goods',
+        },
+      },
     ],
   },
   {

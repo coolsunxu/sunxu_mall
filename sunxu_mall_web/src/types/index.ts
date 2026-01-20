@@ -134,3 +134,31 @@ export interface UserQueryDTO {
   validStatus?: boolean
   deptId?: number
 }
+
+// 商品展示对象 - 对应后端 ProductVO
+export interface ProductVO {
+  id: number
+  categoryId: number
+  productGroupId: number
+  brandId: number
+  unitId: number
+  name: string
+  model: string
+  quantity: number
+  remainQuantity: number
+  price: number
+  coverUrl: string
+  createTime: string
+  updateTime: string
+}
+
+// 商品查询参数 - 对应后端 ProductQueryDTO
+export interface ProductQueryDTO {
+  pageNum: number
+  pageSize: number
+  name?: string
+  model?: string
+  categoryId?: number
+  brandId?: number
+  productGroupId?: number
+}
