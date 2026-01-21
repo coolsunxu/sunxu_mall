@@ -98,4 +98,29 @@ public interface ProductEntityMapper {
     int updateByPrimaryKey(ProductEntity row);
 
     int updateProductInfoWithVersion(ProductEntity row);
+
+    /**
+     * 带 limit 的列表查询（用于导出等场景）
+     */
+    List<ProductEntity> selectListWithLimit(
+            @Param("name") String name,
+            @Param("model") String model,
+            @Param("categoryId") Long categoryId,
+            @Param("brandId") Long brandId,
+            @Param("productGroupId") Long productGroupId,
+            @Param("limit") int limit
+    );
+
+    /**
+     * 带 limit 的游标分页查询
+     */
+    List<ProductEntity> selectByCursorWithLimit(
+            @Param("name") String name,
+            @Param("model") String model,
+            @Param("categoryId") Long categoryId,
+            @Param("brandId") Long brandId,
+            @Param("productGroupId") Long productGroupId,
+            @Param("cursorId") Long cursorId,
+            @Param("limit") int limit
+    );
 }

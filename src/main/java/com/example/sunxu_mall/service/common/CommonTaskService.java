@@ -1,5 +1,7 @@
 package com.example.sunxu_mall.service.common;
 
+import com.example.sunxu_mall.context.AuditContextHolder;
+import com.example.sunxu_mall.context.AuditUser;
 import com.example.sunxu_mall.dto.common.CommonTaskRequestDTO;
 import com.example.sunxu_mall.entity.common.CommonTaskEntity;
 import com.example.sunxu_mall.entity.common.CommonTaskEntityExample;
@@ -72,29 +74,32 @@ public class CommonTaskService {
      */
     @Transactional(rollbackFor = Exception.class)
     public void createTaskFromRequest(CommonTaskRequestDTO dto) {
-        if (dto == null || dto.getBizType() == null) {
+        if (Objects.isNull(dto) || Objects.isNull(dto.getBizType())) {
             log.warn("Invalid task request dto");
             return;
         }
 
-        ExcelBizTypeEnum bizType = dto.getBizType();
-        CommonTaskEntity commonTaskEntity = CommonTaskEntity.builder()
-                .name(String.format("导出%s数据", bizType.getDesc()))
-                .status(TaskStatusEnum.WAITING.getCode())
-                .failureCount((byte) 0)
-                .type(TaskTypeEnum.EXPORT_EXCEL.getCode())
-                .bizType(bizType.getCode())
-                .requestParam(dto.getParamJson())
-                .createUserId(dto.getUserId())
-                .createUserName(dto.getUserName())
-                .createTime(LocalDateTime.now())
-                .updateTime(LocalDateTime.now())
-                .isDel(false)
-                .version(0)
-                .build();
+        try {
+            if (Objects.nonNull(dto.getUserId()) && Objects.nonNull(dto.getUserName())) {
+                AuditContextHolder.set(new AuditUser(dto.getUserId(), dto.getUserName()));
+            }
 
-        // 调用 insert 方法（包含发送执行消息的逻辑）
-        this.insert(commonTaskEntity);
+            ExcelBizTypeEnum bizType = dto.getBizType();
+            CommonTaskEntity commonTaskEntity = CommonTaskEntity.builder()
+                    .name(String.format("Export %s Data", bizType.getDesc()))
+                    .status(TaskStatusEnum.WAITING.getCode())
+                    .failureCount((byte) 0)
+                    .type(TaskTypeEnum.EXPORT_EXCEL.getCode())
+                    .bizType(bizType.getCode())
+                    .requestParam(dto.getParamJson())
+                    .isDel(false)
+                    .version(0)
+                    .build();
+
+            this.insert(commonTaskEntity);
+        } finally {
+            AuditContextHolder.clear();
+        }
     }
 
     /**
@@ -137,7 +142,7 @@ public class CommonTaskService {
 
         Long taskId = task.getId();
         CommonTaskEntity current = commonTaskEntityMapper.selectByPrimaryKey(taskId);
-        if (current == null) {
+        if (Objects.isNull(current)) {
             throw new BusinessException(404, "Task not found");
         }
 
@@ -145,7 +150,7 @@ public class CommonTaskService {
         BeanCopyUtils.copyNonNullProperties(task, current);
 
         current.setVersion(oldVersion);
-        current.setUpdateTime(LocalDateTime.now());
+        // updateTime由拦截器自动填充
 
         int rows = commonTaskEntityMapper.updateTaskWithVersion(current);
         if (rows == 0) {

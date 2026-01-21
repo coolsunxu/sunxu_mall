@@ -22,7 +22,7 @@ public class NotificationLocalListener {
 
     private final NotificationConsumerDelegate delegate;
 
-    @Async
+    @Async("notificationExecutor")
     @EventListener
     public void onEvent(MqEvent event) {
         // 过滤掉 CommonTask 触发事件，只处理通知事件（或者通过 Topic 区分）

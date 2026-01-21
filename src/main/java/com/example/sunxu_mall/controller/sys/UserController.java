@@ -8,7 +8,7 @@ import com.example.sunxu_mall.dto.user.UserQueryDTO;
 import com.example.sunxu_mall.dto.user.UserUpdateDTO;
 import com.example.sunxu_mall.entity.sys.web.UserWebEntity;
 import com.example.sunxu_mall.enums.ExcelBizTypeEnum;
-import com.example.sunxu_mall.model.ResponsePageEntity;
+import com.example.sunxu_mall.model.ResponseCursorEntity;
 import com.example.sunxu_mall.service.sys.UserService;
 import com.example.sunxu_mall.vo.user.UserVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -48,18 +48,14 @@ public class UserController {
     }
 
     /**
-     * 根据条件查询用户列表
-     *
-     * @param userQueryDTO 条件
-     * @return 用户列表
+     * 双向游标分页查询用户列表（支持指定页码）
+     * 注意：已移除 searchByPage 和 searchByCursor，统一使用此接口
      */
-    @Operation(summary = "根据条件查询用户列表", description = "根据条件查询用户列表")
-    @PostMapping("/searchByPage")
-    public ResponsePageEntity<UserVO> searchByPage(@RequestBody UserQueryDTO userQueryDTO) {
-        ResponsePageEntity<UserWebEntity> pageEntity = userService.searchByPage(userQueryDTO);
-        List<UserVO> voList = userStructMapper.toVOList(pageEntity.getList());
-        log.info("[searchByPage] -> get user info {}", voList);
-        return new ResponsePageEntity<>(pageEntity.getPageNum(), pageEntity.getPageSize(), pageEntity.getTotal(), voList);
+    @Operation(summary = "查询用户列表（游标分页）", description = "支持向前/向后翻页，可指定页码")
+    @PostMapping("/searchByBidirectionalCursor")
+    public ResponseCursorEntity<UserVO> searchByBidirectionalCursor(@RequestBody UserQueryDTO userQueryDTO) {
+        ResponseCursorEntity<UserWebEntity> cursorEntity = userService.searchByBidirectionalCursor(userQueryDTO);
+        return ResponseCursorEntity.convert(cursorEntity, userStructMapper::toVOList);
     }
 
 

@@ -1,21 +1,25 @@
 package com.example.sunxu_mall.helper;
 
-import cn.hutool.json.JSONUtil;
-import com.alibaba.fastjson.JSON;
 import com.example.sunxu_mall.entity.auth.JwtUserEntity;
 import com.example.sunxu_mall.errorcode.ErrorCode;
 import com.example.sunxu_mall.exception.BusinessException;
+import com.example.sunxu_mall.util.JsonUtil;
 import com.example.sunxu_mall.util.RedisUtil;
 import com.example.sunxu_mall.util.SpringBeanUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 
+import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import static com.example.sunxu_mall.errorcode.ErrorCode.PERMISSION_DENIED;
 
@@ -46,7 +50,12 @@ public class TokenHelper extends UserTokenHelper {
      * @return token
      */
     public String generateToken(UserDetails userDetails) {
-        return super.generateToken(userDetails.getUsername(), JSON.toJSONString(userDetails));
+        try {
+            return super.generateToken(userDetails.getUsername(), JsonUtil.toJson(userDetails));
+        } catch (IOException e) {
+            log.error("Failed to serialize user details to JSON", e);
+            throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR.getCode(), "Failed to generate token");
+        }
     }
 
 
@@ -63,17 +72,18 @@ public class TokenHelper extends UserTokenHelper {
 
         if (StringUtils.hasLength(userDetailJson)) {
             try {
-                // 如果 Redis 中有数据，解析为 JwtUserEntity
-                return JSON.parseObject(userDetailJson, JwtUserEntity.class);
+                // 如果 Redis 中有数据，解析为 JwtUserEntity（使用统一的 Jackson）
+                JwtUserEntity jwt = JsonUtil.fromJson(userDetailJson, JwtUserEntity.class);
+                return ensureAuthorities(jwt);
             } catch (Exception e) {
                 log.warn("Failed to parse user details from Redis for user: {}, error: {}", username, e.getMessage());
                 // 如果解析失败，回退到从数据库加载
-                return loadUserDetailsByUsername(username);
+                return ensureAuthorities(loadUserDetailsByUsername(username));
             }
         }
 
         // 如果 Redis 中没有数据，从数据库加载
-        return loadUserDetailsByUsername(username);
+        return ensureAuthorities(loadUserDetailsByUsername(username));
     }
 
 
@@ -106,7 +116,41 @@ public class TokenHelper extends UserTokenHelper {
      */
     public UserDetails getUserDetails(String username) {
         String userJson = redisUtil.get(getKey(USER_PREFIX, username));
-        return JSONUtil.toBean(userJson, UserDetails.class);
+        if (!StringUtils.hasLength(userJson)) {
+            return null;
+        }
+        try {
+            JwtUserEntity jwt = JsonUtil.fromJson(userJson, JwtUserEntity.class);
+            return ensureAuthorities(jwt);
+        } catch (IOException e) {
+            log.warn("Failed to parse user details from Redis for user: {}", username, e);
+            return null;
+        }
+    }
+
+    /**
+     * 确保 JwtUserEntity.authorities 不为空：
+     * - Redis 缓存反序列化时 authorities 被忽略（或历史缓存无法反序列化），此处根据 roles 重建
+     */
+    private UserDetails ensureAuthorities(UserDetails userDetails) {
+        if (!(userDetails instanceof JwtUserEntity)) {
+            return userDetails;
+        }
+        JwtUserEntity jwt = (JwtUserEntity) userDetails;
+        if (Objects.isNull(jwt)) {
+            return null;
+        }
+        if (Objects.isNull(jwt.getAuthorities()) || jwt.getAuthorities().isEmpty()) {
+            List<String> roles = Objects.isNull(jwt.getRoles()) ? Collections.emptyList() : jwt.getRoles();
+            if (!roles.isEmpty()) {
+                List<SimpleGrantedAuthority> authorities = roles.stream()
+                        .filter(StringUtils::hasText)
+                        .map(SimpleGrantedAuthority::new)
+                        .collect(Collectors.toList());
+                jwt.setAuthorities(authorities);
+            }
+        }
+        return jwt;
     }
 
     /**
@@ -119,7 +163,7 @@ public class TokenHelper extends UserTokenHelper {
         try {
             // 注入 UserDetailsService 来加载用户信息
             UserDetailsService userDetailsService = SpringBeanUtil.getBean("userDetailsService");
-            if (userDetailsService != null) {
+            if (Objects.nonNull(userDetailsService)) {
                 return userDetailsService.loadUserByUsername(username);
             }
             log.warn("UserDetailsService bean not found");

@@ -35,4 +35,9 @@ public class ApiResult<T> {
      * 数据
      */
     private T data;
+
+    /**
+     * 链路追踪 ID（可选，用于排障）
+     */
+    private String traceId;
 }

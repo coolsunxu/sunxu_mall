@@ -21,31 +21,31 @@ public class BcryptEncoderTest {
     public void testBcryptEncode() {
         // 要加密的特定字符串
         String originalPassword = "sunshine";
-        System.out.println("=== BCrypt密码加密测试 ===");
-        System.out.println("原始密码: " + originalPassword);
+        System.out.println("=== BCrypt Password Encryption Test ===");
+        System.out.println("Original password: " + originalPassword);
         
-        // 创建BCryptPasswordEncoder实例
+        // Create BCryptPasswordEncoder instance
         BCryptPasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
         
-        // 执行加密
+        // Execute encryption
         String encryptedPassword = passwordEncoder.encode(originalPassword);
         
-        // 输出加密结果
-        System.out.println("加密后密码: " + encryptedPassword);
-        System.out.println("加密结果长度: " + encryptedPassword.length());
+        // Output encryption result
+        System.out.println("Encrypted password: " + encryptedPassword);
+        System.out.println("Encrypted result length: " + encryptedPassword.length());
         System.out.println();
         
-        // 测试多次加密结果是否不同（BCrypt每次加密会生成不同的salt）
+        // Test if multiple encryptions produce different results (BCrypt generates different salt each time)
         String encryptedPassword2 = passwordEncoder.encode(originalPassword);
-        System.out.println("第二次加密结果: " + encryptedPassword2);
-        System.out.println("两次加密结果是否相同: " + encryptedPassword.equals(encryptedPassword2));
+        System.out.println("Second encryption result: " + encryptedPassword2);
+        System.out.println("Are two encryption results the same: " + encryptedPassword.equals(encryptedPassword2));
         System.out.println();
         
-        // 验证密码匹配
+        // Verify password matching
         boolean isMatch = passwordEncoder.matches(originalPassword, encryptedPassword);
         boolean isMatch2 = passwordEncoder.matches(originalPassword, encryptedPassword2);
-        System.out.println("密码匹配验证1: " + isMatch);
-        System.out.println("密码匹配验证2: " + isMatch2);
+        System.out.println("Password match verification 1: " + isMatch);
+        System.out.println("Password match verification 2: " + isMatch2);
         System.out.println("======================");
     }
 }

@@ -15,5 +15,4 @@ public class SunxuMallApplication {
     public static void main(String[] args) {
         SpringApplication.run(SunxuMallApplication.class, args);
     }
-
 }

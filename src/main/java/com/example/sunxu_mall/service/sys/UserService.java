@@ -13,12 +13,7 @@ import com.example.sunxu_mall.exception.BusinessException;
 import com.example.sunxu_mall.helper.TokenHelper;
 import com.example.sunxu_mall.mapper.sys.UserWebEntityMapper;
 import com.example.sunxu_mall.service.BaseService;
-import com.example.sunxu_mall.util.BeanCopyUtils;
-import com.example.sunxu_mall.util.HttpUtil;
-import com.example.sunxu_mall.util.PasswordUtil;
-import com.example.sunxu_mall.util.RedisUtil;
-import com.example.sunxu_mall.util.TokenUtil;
-import com.example.sunxu_mall.util.SecurityUtil;
+import com.example.sunxu_mall.util.*;
 import com.wf.captcha.SpecCaptcha;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -33,8 +28,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.context.request.RequestContextHolder;
@@ -50,6 +43,10 @@ import java.util.stream.Collectors;
 import static com.example.sunxu_mall.errorcode.ErrorCode.*;
 import static com.example.sunxu_mall.util.CaptchaKeyUtil.getCaptchaKey;
 
+/**
+ * @author sunxu
+ */
+
 @Slf4j
 @Service
 public class UserService extends BaseService<UserWebEntity, UserQueryDTO> {
@@ -58,7 +55,6 @@ public class UserService extends BaseService<UserWebEntity, UserQueryDTO> {
     private final PasswordUtil passwordUtil;
     private final AuthenticationManager authenticationManager;
     private final TokenHelper tokenHelper;
-    private final UserDetailsService userDetailsService;
     private final ApplicationEventPublisher eventPublisher;
 
     @Value("${mall.mgt.tokenExpireTimeInRecord}")
@@ -77,7 +73,6 @@ public class UserService extends BaseService<UserWebEntity, UserQueryDTO> {
             PasswordUtil passwordUtil,
             AuthenticationManager authenticationManager,
             TokenHelper tokenHelper,
-            UserDetailsService userDetailsService,
             ApplicationEventPublisher eventPublisher
     ) {
         this.userMapper = userMapper;
@@ -85,7 +80,6 @@ public class UserService extends BaseService<UserWebEntity, UserQueryDTO> {
         this.passwordUtil = passwordUtil;
         this.authenticationManager = authenticationManager;
         this.tokenHelper = tokenHelper;
-        this.userDetailsService = userDetailsService;
         this.eventPublisher = eventPublisher;
     }
 
@@ -257,30 +251,33 @@ public class UserService extends BaseService<UserWebEntity, UserQueryDTO> {
     }
 
     @Override
-    protected List<UserWebEntity> selectList(UserQueryDTO queryDTO) {
-        UserWebEntityExample example = new UserWebEntityExample();
-        UserWebEntityExample.Criteria criteria = example.createCriteria();
+    protected List<UserWebEntity> selectListWithLimit(UserQueryDTO queryDTO, int limit) {
+        return userMapper.selectListWithLimit(
+                queryDTO.getUserName(),
+                queryDTO.getPhone(),
+                queryDTO.getEmail(),
+                queryDTO.getValidStatus(),
+                queryDTO.getDeptId(),
+                limit
+        );
+    }
 
-        // Check if isDel exists in entity
-        criteria.andIsDelEqualTo(false);
+    @Override
+    protected List<UserWebEntity> selectListByCursorWithLimit(UserQueryDTO queryDTO, Long cursorId, int limit) {
+        return userMapper.selectByCursorWithLimit(
+                queryDTO.getUserName(),
+                queryDTO.getPhone(),
+                queryDTO.getEmail(),
+                queryDTO.getValidStatus(),
+                queryDTO.getDeptId(),
+                cursorId,
+                limit
+        );
+    }
 
-        if (StringUtils.isNotBlank(queryDTO.getUserName())) {
-            criteria.andUserNameLike("%" + queryDTO.getUserName() + "%");
-        }
-        if (StringUtils.isNotBlank(queryDTO.getPhone())) {
-            criteria.andPhoneLike("%" + queryDTO.getPhone() + "%");
-        }
-        if (StringUtils.isNotBlank(queryDTO.getEmail())) {
-            criteria.andEmailLike("%" + queryDTO.getEmail() + "%");
-        }
-        if (Objects.nonNull(queryDTO.getValidStatus())) {
-            criteria.andValidStatusEqualTo(queryDTO.getValidStatus());
-        }
-        if (Objects.nonNull(queryDTO.getDeptId())) {
-            criteria.andDeptIdEqualTo(queryDTO.getDeptId());
-        }
-        
-        return userMapper.selectByExample(example);
+    @Override
+    protected Long extractEntityId(UserWebEntity entity) {
+        return Objects.isNull(entity) ? null : entity.getId();
     }
 
     /**
@@ -322,7 +319,7 @@ public class UserService extends BaseService<UserWebEntity, UserQueryDTO> {
 
         Long userId = userEntity.getId();
         UserWebEntity current = userMapper.selectByPrimaryKey(userId);
-        if (current == null) {
+        if (Objects.isNull(current)) {
             throw new BusinessException(USER_NOT_EXIST.getCode(), USER_NOT_EXIST.getMessage());
         }
 

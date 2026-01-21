@@ -25,6 +25,13 @@ public class JwtUserEntity implements UserDetails {
     private String username;
     @JsonIgnore
     private String password;
+    /**
+     * Spring Security 权限列表
+     *
+     * 说明：缓存到 Redis 时不序列化该字段（历史缓存里即使包含该字段也会被忽略），
+     * 运行时根据 roles 重新构建，避免 Jackson 反序列化 SimpleGrantedAuthority 失败。
+     */
+    @JsonIgnore
     private List<SimpleGrantedAuthority> authorities;
     /**
      * 角色信息

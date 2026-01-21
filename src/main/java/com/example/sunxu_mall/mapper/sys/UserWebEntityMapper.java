@@ -103,4 +103,29 @@ public interface UserWebEntityMapper {
     Integer selectVersionById(Long id);
 
     int updateUserInfoWithVersion(UserWebEntity row);
+
+    /**
+     * 带 limit 的列表查询（用于导出等场景）
+     */
+    List<UserWebEntity> selectListWithLimit(
+            @Param("userName") String userName,
+            @Param("phone") String phone,
+            @Param("email") String email,
+            @Param("validStatus") Boolean validStatus,
+            @Param("deptId") Long deptId,
+            @Param("limit") int limit
+    );
+
+    /**
+     * 带 limit 的游标分页查询
+     */
+    List<UserWebEntity> selectByCursorWithLimit(
+            @Param("userName") String userName,
+            @Param("phone") String phone,
+            @Param("email") String email,
+            @Param("validStatus") Boolean validStatus,
+            @Param("deptId") Long deptId,
+            @Param("cursorId") Long cursorId,
+            @Param("limit") int limit
+    );
 }

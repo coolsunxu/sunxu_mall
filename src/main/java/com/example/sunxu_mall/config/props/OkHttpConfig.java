@@ -20,6 +20,13 @@ public class OkHttpConfig {
     private Duration writeTimeout = Duration.ofSeconds(10);
     private boolean followRedirects = true;
     private boolean followSslRedirects = true;
+    /**
+     * 是否启用“不安全模式”：信任所有证书与域名。
+     * 仅建议在本地开发/联调环境临时开启，生产环境务必保持为 false。
+     *
+     * 配置项：ok.http.insecure-trust-all=true|false
+     */
+    private boolean insecureTrustAll = false;
 
     private Pool connectionPool = new Pool();
 

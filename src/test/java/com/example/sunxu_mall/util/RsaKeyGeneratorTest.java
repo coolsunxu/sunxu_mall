@@ -21,17 +21,17 @@ public class RsaKeyGeneratorTest {
     public void testGenerateRsaKeys() {
         String[] keys = RsaKeyGenerator.generateRsaKeys();
         
-        // 输出密钥对
-        System.out.println("=== RSA密钥对生成结果 ===");
-        System.out.println("私钥 (privateKey):");
+        // Output key pair
+        System.out.println("=== RSA Key Pair Generation Result ===");
+        System.out.println("Private Key (privateKey):");
         System.out.println(keys[0]);
         System.out.println();
-        System.out.println("公钥 (publicKey):");
+        System.out.println("Public Key (publicKey):");
         System.out.println(keys[1]);
         System.out.println("=======================");
         
-        // 输出配置文件格式的密钥
-        System.out.println("\n=== 配置文件格式 ===");
+        // Output keys in configuration file format
+        System.out.println("\n=== Configuration File Format ===");
         System.out.println("mall:");
         System.out.println("  mgt:");
         System.out.println("    password:");
@@ -44,33 +44,33 @@ public class RsaKeyGeneratorTest {
     }
     
     /**
-     * 测试对特定字符串加密，并输出Base64编码的密文
-     * @param keys RSA密钥对，index 0为私钥，index 1为公钥
+     * Test encrypting a specific string and outputting Base64 encoded ciphertext
+     * @param keys RSA key pair, index 0 is private key, index 1 is public key
      */
     private void testEncryptString(String[] keys) {
-        // 特定字符串
+        // Specific string
         String originalStr = "sunshine";
-        System.out.println("\n=== 特定字符串加密测试 ===");
-        System.out.println("原始字符串: " + originalStr);
+        System.out.println("\n=== Specific String Encryption Test ===");
+        System.out.println("Original String: " + originalStr);
         
         try {
-            // 使用公钥加密
+            // Encrypt using public key
             RSA rsa = new RSA(keys[0], keys[1]);
             
-            // 获取Base64编码的密文
+            // Get Base64 encoded ciphertext
             String encryptedBase64 = rsa.encryptBase64(originalStr, KeyType.PublicKey);
             
-            // 输出密文
-            System.out.println("加密后密文 (Base64编码): ");
+            // Output ciphertext
+            System.out.println("Encrypted Ciphertext (Base64 encoded): ");
             System.out.println(encryptedBase64);
             System.out.println();
             
-            // 验证解密 - 使用Base64密文直接解密
+            // Verify decryption - decrypt directly using Base64 ciphertext
             String decryptedStr = rsa.decryptStr(encryptedBase64, KeyType.PrivateKey);
-            System.out.println("解密后字符串: " + decryptedStr);
-            System.out.println("加密解密一致性验证: " + originalStr.equals(decryptedStr));
+            System.out.println("Decrypted String: " + decryptedStr);
+            System.out.println("Encryption-Decryption Consistency Verification: " + originalStr.equals(decryptedStr));
         } catch (Exception e) {
-            System.err.println("加密解密测试失败: " + e.getMessage());
+            System.err.println("Encryption-Decryption Test Failed: " + e.getMessage());
             e.printStackTrace();
         }
         System.out.println("=======================");

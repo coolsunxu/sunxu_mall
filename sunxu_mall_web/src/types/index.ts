@@ -72,11 +72,25 @@ export interface ApiResult<T = any> {
 }
 
 // 分页响应格式 - 对应后端 ResponsePageEntity
+// 注意：后端 searchByPage 已下线，此类型仅保留用于兼容
+// @deprecated 推荐使用 ResponseCursorEntity
 export interface ResponsePageEntity<T> {
   pageNum: number
   pageSize: number
   total: number
   list: T[]
+}
+
+// 游标分页响应格式 - 对应后端 ResponseCursorEntity
+export interface ResponseCursorEntity<T> {
+  pageSize: number
+  nextCursorId: number | null
+  hasNext: boolean
+  list: T[]
+  cursorToken?: string // 游标状态令牌
+  currentPageNum?: number // 当前页码
+  prevCursorId?: number | null // 上一页游标
+  hasPrev?: boolean // 是否有上一页
 }
 
 // 用户展示对象 - 对应后端 UserVO
@@ -126,8 +140,11 @@ export interface UserUpdateDTO {
 
 // 用户查询参数 - 对应后端 UserQueryDTO
 export interface UserQueryDTO {
-  pageNum: number
-  pageSize: number
+  pageNum?: number
+  pageSize?: number
+  cursorId?: number
+  cursorDirection?: string // NEXT, PREV
+  cursorToken?: string // Base64 encoded cursor state
   userName?: string
   phone?: string
   email?: string
@@ -154,8 +171,11 @@ export interface ProductVO {
 
 // 商品查询参数 - 对应后端 ProductQueryDTO
 export interface ProductQueryDTO {
-  pageNum: number
-  pageSize: number
+  pageNum?: number
+  pageSize?: number
+  cursorId?: number
+  cursorDirection?: string // NEXT, PREV
+  cursorToken?: string // Base64 encoded cursor state
   name?: string
   model?: string
   categoryId?: number

@@ -12,6 +12,26 @@ spring:
     url: jdbc:mysql://127.0.0.1:3306/mall?useUnicode=true&serverTimezone=UTC&characterEncoding=UTF-8
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:123456}
+    # Druid 连接池配置（含慢查询日志）
+    druid:
+      initial-size: 5
+      min-idle: 5
+      max-active: 20
+      max-wait: 60000
+      # 慢查询日志配置
+      filter:
+        stat:
+          enabled: true
+          slow-sql-millis: 1000  # 慢查询阈值（毫秒）
+          log-slow-sql: true     # 记录慢查询日志
+          merge-sql: true        # 合并相同 SQL
+        slf4j:
+          enabled: true
+          statement-executable-sql-log-enable: true
+      # 监控统计
+      stat-view-servlet:
+        enabled: false  # 生产环境建议关闭或配置访问控制
+        url-pattern: /druid/*
   # 修复 Spring Boot 2.6.x 与 Swagger 兼容性问题
   mvc:
     pathmatch:
@@ -56,10 +76,10 @@ logging:
 
 mybatis:
   mapper-locations: classpath:com/example/sunxu_mall/mapper/**/*.xml
-  type-aliases-package: com.example.sunxu_mall.entity
   configuration:
     map-underscore-to-camel-case: true
 
+# PageHelper 已移除，统一使用游标分页
 
 # SpringDoc OpenAPI 配置
 springdoc:
@@ -76,7 +96,29 @@ redisson:
 
 # 项目自定义配置（含敏感信息，生产环境请使用 application-secret.yaml）
 mall:
+  # CORS 跨域配置（可按环境覆盖）
+  cors:
+    allowed-origins:
+      - http://localhost:3000
+      - http://localhost:3001
+      - http://127.0.0.1:3000
+      - http://127.0.0.1:3001
+    allow-credentials: true
+    max-age: 3600
+  # 安全配置
+  security:
+    # 是否放行 WebSocket 端点（本地/测试环境设为 true，生产环境设为 false 并要求 token）
+    permit-web-socket: true
+    # 额外需要放行的 URL 模式
+    permit-urls: []
+  # 性能监控配置
+  performance:
+    # 是否启用性能日志
+    enabled: true
+    # 慢接口阈值（毫秒），超过此值输出警告日志
+    slow-api-threshold-ms: 1000
   mgt:
+    maxOffsetForTotal: 5000
     async:
       pools:
         login:
@@ -91,6 +133,20 @@ mall:
           queue-capacity: 200
           keep-alive-seconds: 60
           thread-name-prefix: "async-common-"
+        # 导出任务专用线程池（IO 密集型，独立隔离避免影响其他异步任务）
+        export:
+          core-size: 2
+          max-size: 4
+          queue-capacity: 50
+          keep-alive-seconds: 120
+          thread-name-prefix: "async-export-"
+        # 通知任务专用线程池
+        notification:
+          core-size: 2
+          max-size: 5
+          queue-capacity: 150
+          keep-alive-seconds: 60
+          thread-name-prefix: "async-notification-"
     tokenExpireTimeInRecord: 3600
     # 验证码过期时间（秒）
     captchaExpireSecond: 300

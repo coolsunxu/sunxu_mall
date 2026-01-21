@@ -1,8 +1,9 @@
 package com.example.sunxu_mall.config.beans;
 
 import com.example.sunxu_mall.config.props.UploadConfig;
-import lombok.extern.slf4j.Slf4j;
+import com.example.sunxu_mall.interceptor.PerformanceInterceptor;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
@@ -14,9 +15,18 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 public class WebMvcConfig implements WebMvcConfigurer {
 
     private final UploadConfig uploadConfig;
+    private final PerformanceInterceptor performanceInterceptor;
 
-    public WebMvcConfig(UploadConfig uploadConfig) {
+    public WebMvcConfig(UploadConfig uploadConfig, PerformanceInterceptor performanceInterceptor) {
         this.uploadConfig = uploadConfig;
+        this.performanceInterceptor = performanceInterceptor;
+    }
+
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(performanceInterceptor)
+                .addPathPatterns("/**")
+                .excludePathPatterns("/swagger-ui/**", "/v3/api-docs/**", "/files/**");
     }
 
     @Override

@@ -1,5 +1,7 @@
 package com.example.sunxu_mall.mq.consumer;
 
+import com.example.sunxu_mall.context.AuditContextHolder;
+import com.example.sunxu_mall.context.AuditUser;
 import com.example.sunxu_mall.entity.common.CommonTaskEntity;
 import com.example.sunxu_mall.enums.TaskStatusEnum;
 import com.example.sunxu_mall.enums.TaskTypeEnum;
@@ -7,6 +9,7 @@ import com.example.sunxu_mall.mapper.common.CommonTaskEntityMapper;
 import com.example.sunxu_mall.service.task.impl.ExcelExportTask;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import java.util.Objects;
@@ -23,14 +26,15 @@ public class TaskConsumerDelegate {
     private final CommonTaskEntityMapper commonTaskEntityMapper;
     private final ExcelExportTask excelExportTask;
 
+    @Async("commonTaskExecutor")
     public void consume(Long taskId) {
-        if (taskId == null) {
+        if (Objects.isNull(taskId)) {
             return;
         }
         log.info("Consuming task: {}", taskId);
 
         CommonTaskEntity task = commonTaskEntityMapper.selectByPrimaryKey(taskId);
-        if (task == null) {
+        if (Objects.isNull(task)) {
             log.warn("Task not found: {}", taskId);
             return;
         }
@@ -41,8 +45,12 @@ public class TaskConsumerDelegate {
         }
 
         try {
+            if (Objects.nonNull(task.getCreateUserId()) && Objects.nonNull(task.getCreateUserName())) {
+                AuditContextHolder.set(new AuditUser(task.getCreateUserId(), task.getCreateUserName()));
+            }
+
             TaskTypeEnum typeEnum = TaskTypeEnum.getByCode(task.getType());
-            if (typeEnum == null) {
+            if (Objects.isNull(typeEnum)) {
                 log.warn("Unknown task type: {}", task.getType());
                 return;
             }
@@ -58,6 +66,8 @@ public class TaskConsumerDelegate {
             }
         } catch (Exception e) {
             log.error("Failed to execute task: id={}", task.getId(), e);
+        } finally {
+            AuditContextHolder.clear();
         }
     }
 }

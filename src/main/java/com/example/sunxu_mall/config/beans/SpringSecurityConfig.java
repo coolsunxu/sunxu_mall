@@ -3,6 +3,7 @@ package com.example.sunxu_mall.config.beans;
 
 import com.example.sunxu_mall.annotation.NoLogin;
 import com.example.sunxu_mall.config.props.JwtTokenConfig;
+import com.example.sunxu_mall.config.props.SecurityProperties;
 import com.example.sunxu_mall.service.user.UserDetailsServiceImpl;
 import com.example.sunxu_mall.util.NoLoginMap;
 import lombok.NonNull;
@@ -50,19 +51,24 @@ import java.util.*;
 public class SpringSecurityConfig implements ApplicationContextAware {
 
     private final UserDetailsServiceImpl userDetailsService;
+    private final SecurityProperties securityProperties;
 
     private ApplicationContext applicationContext;
 
     /**
-     * Constructor injection for UserDetailsServiceImpl
+     * Constructor injection for UserDetailsServiceImpl and SecurityProperties
      *
      * @param userDetailsService UserDetailsService implementation for user authentication
+     * @param securityProperties Security configuration properties
+     * @param applicationContext Spring application context
      */
     public SpringSecurityConfig(
             UserDetailsServiceImpl userDetailsService,
+            SecurityProperties securityProperties,
             ApplicationContext applicationContext
     ) {
         this.userDetailsService = userDetailsService;
+        this.securityProperties = securityProperties;
         this.applicationContext = applicationContext;
     }
 
@@ -147,12 +153,15 @@ public class SpringSecurityConfig implements ApplicationContextAware {
                         "/**/*.css",
                         "/**/*.js"
                 ).permitAll()
+                // WebSocket 端点（根据配置决定是否放行）
+                .antMatchers(buildWebSocketPatterns()).permitAll()
                 .antMatchers(
-                        "/ws/**",
                         "/files/**",
                         "/job/**",
                         "/init/**"
                 ).permitAll()
+                // 额外配置的放行 URL
+                .antMatchers(securityProperties.getPermitUrls().toArray(new String[0])).permitAll()
                 // swagger 文档
                 .antMatchers("/swagger-ui.html").permitAll()
                 .antMatchers("/swagger-ui/**").permitAll()
@@ -196,6 +205,18 @@ public class SpringSecurityConfig implements ApplicationContextAware {
     public PasswordEncoder passwordEncoder() {
         // BCrypt with strength 10 (default)
         return new BCryptPasswordEncoder();
+    }
+
+    /**
+     * 根据配置构建 WebSocket 放行模式
+     * 如果 permitWebSocket = true，则放行 /ws/**
+     * 如果 permitWebSocket = false，则返回空数组（需要认证）
+     */
+    private String[] buildWebSocketPatterns() {
+        if (securityProperties.isPermitWebSocket()) {
+            return new String[]{"/ws/**"};
+        }
+        return new String[0];
     }
 
     private void initNoLogin(ApplicationContext applicationContext) {

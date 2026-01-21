@@ -19,7 +19,10 @@ public class ApiResultUtil {
      * @return 接口相应实体
      */
     public static <T> ApiResult<T> success(T data) {
-        return new ApiResult<>(ApiResult.OK, null, data);
+        ApiResult<T> result = new ApiResult<>();
+        result.setCode(ApiResult.OK);
+        result.setData(data);
+        return result;
     }
 
     /**
@@ -41,6 +44,9 @@ public class ApiResultUtil {
      * @return 接口相应实体
      */
     public static <T> ApiResult<T> error(int code, String message) {
-        return new ApiResult<>(code, message, null);
+        ApiResult<T> result = new ApiResult<>();
+        result.setCode(code);
+        result.setMessage(message);
+        return result;
     }
 }

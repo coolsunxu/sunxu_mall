@@ -21,7 +21,7 @@ public class LocalTaskListener {
 
     private final TaskConsumerDelegate taskConsumerDelegate;
 
-    @Async
+    @Async("commonTaskExecutor")
     @EventListener(condition = "#event.topic == '" + MQConstant.MALL_COMMON_TASK_TOPIC + "'")
     public void onEvent(MqEvent event) {
         log.info("Received local event: key={}, message={}", event.getKey(), event.getMessage());

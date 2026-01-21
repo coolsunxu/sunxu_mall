@@ -21,6 +21,7 @@ import com.example.sunxu_mall.util.DateFormatUtil;
 import com.example.sunxu_mall.util.FillUserUtil;
 import com.example.sunxu_mall.util.SpringBeanUtil;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.util.ObjectUtils;
 
@@ -51,6 +52,7 @@ public class ExcelExportTask implements IAsyncTask {
         this.commonNotifyService = commonNotifyService;
     }
 
+    @Async("exportExecutor")
     @Override
     public void doTask(CommonTaskEntity commonTaskEntity) {
         // 任务逻辑
@@ -104,7 +106,7 @@ public class ExcelExportTask implements IAsyncTask {
         if (ObjectUtils.isEmpty(serviceName)) {
             throw new BusinessException(ErrorCode.EXPORT_CONFIG_ERROR);
         }
-        BaseService baseService = SpringBeanUtil.getBean(serviceName);
+        BaseService<?, BasePageQuery> baseService = SpringBeanUtil.getBean(serviceName);
 
         String exportClassName = excelBizTypeEnum.getExportClassName();
         if (ObjectUtils.isEmpty(exportClassName)) {

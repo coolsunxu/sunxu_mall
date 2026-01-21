@@ -1,5 +1,7 @@
 package com.example.sunxu_mall.job;
 
+import com.example.sunxu_mall.context.AuditContextHolder;
+import com.example.sunxu_mall.context.AuditUser;
 import com.example.sunxu_mall.entity.common.CommonTaskEntity;
 import com.example.sunxu_mall.enums.ExcelBizTypeEnum;
 import com.example.sunxu_mall.enums.TaskTypeEnum;
@@ -46,6 +48,10 @@ public class CommonTaskJob {
 
         for (CommonTaskEntity task : waitingTasks) {
             try {
+                if (Objects.nonNull(task.getCreateUserId()) && Objects.nonNull(task.getCreateUserName())) {
+                    AuditContextHolder.set(new AuditUser(task.getCreateUserId(), task.getCreateUserName()));
+                }
+
                 switch (Objects.requireNonNull(TaskTypeEnum.getByCode(task.getType()))) {
                     case EXPORT_EXCEL:
                         log.info("Processing Excel export task: id={}, bizType={}", task.getId(), task.getBizType());
@@ -57,6 +63,8 @@ public class CommonTaskJob {
                 }
             } catch (Exception e) {
                 log.warn("Failed to execute task: id={}", task.getId(), e);
+            } finally {
+                AuditContextHolder.clear();
             }
         }
     }

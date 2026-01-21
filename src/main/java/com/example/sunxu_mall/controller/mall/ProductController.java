@@ -3,7 +3,7 @@ package com.example.sunxu_mall.controller.mall;
 import com.example.sunxu_mall.convert.mall.ProductStructMapper;
 import com.example.sunxu_mall.dto.mall.ProductQueryDTO;
 import com.example.sunxu_mall.entity.mall.ProductEntity;
-import com.example.sunxu_mall.model.ResponsePageEntity;
+import com.example.sunxu_mall.model.ResponseCursorEntity;
 import com.example.sunxu_mall.service.mall.ProductService;
 import com.example.sunxu_mall.vo.mall.ProductVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -46,17 +46,14 @@ public class ProductController {
     }
 
     /**
-     * 根据条件查询商品列表
-     *
-     * @param productQueryDTO 条件
-     * @return 商品列表
+     * 查询商品列表（游标分页）
+     * 注意：已移除 searchByPage 和 searchByCursor，统一使用此接口
      */
-    @Operation(summary = "根据条件查询商品列表", description = "根据条件查询商品列表")
-    @PostMapping("/searchByPage")
-    public ResponsePageEntity<ProductVO> searchByPage(@RequestBody ProductQueryDTO productQueryDTO) {
-        ResponsePageEntity<ProductEntity> pageEntity = productService.searchByPage(productQueryDTO);
-        List<ProductVO> voList = productStructMapper.toVOList(pageEntity.getList());
-        return new ResponsePageEntity<>(pageEntity.getPageNum(), pageEntity.getPageSize(), pageEntity.getTotal(), voList);
+    @Operation(summary = "查询商品列表（游标分页）", description = "支持向前/向后翻页，可指定页码")
+    @PostMapping("/searchByBidirectionalCursor")
+    public ResponseCursorEntity<ProductVO> searchByBidirectionalCursor(@RequestBody ProductQueryDTO productQueryDTO) {
+        ResponseCursorEntity<ProductEntity> cursorEntity = productService.searchByBidirectionalCursor(productQueryDTO);
+        return ResponseCursorEntity.convert(cursorEntity, productStructMapper::toVOList);
     }
 
 }

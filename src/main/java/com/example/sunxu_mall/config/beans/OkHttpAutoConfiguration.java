@@ -39,27 +39,6 @@ public class OkHttpAutoConfiguration {
     @Bean
     public OkHttpClient okHttpClient(OkHttpConfig props) {
         try {
-            // Create TrustManager that trusts all certificates (for development environment)
-            final TrustManager[] trustAllCerts = new TrustManager[]{
-                    new X509TrustManager() {
-                        @Override
-                        public void checkClientTrusted(java.security.cert.X509Certificate[] chain, String authType) throws CertificateException {}
-
-                        @Override
-                        public void checkServerTrusted(java.security.cert.X509Certificate[] chain, String authType) throws CertificateException {}
-
-                        @Override
-                        public java.security.cert.X509Certificate[] getAcceptedIssuers() {
-                            return new java.security.cert.X509Certificate[]{};
-                        }
-                    }
-            };
-
-            // Install SSLContext that trusts all certificates
-            final SSLContext sslContext = SSLContext.getInstance("SSL");
-            sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
-            final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
-
             // Create connection pool configuration
             ConnectionPool pool = new ConnectionPool(
                     props.getConnectionPool().getMaxIdleConnections(),
@@ -67,18 +46,42 @@ public class OkHttpAutoConfiguration {
                     TimeUnit.SECONDS
             );
 
-            // Build OkHttpClient
-            return new OkHttpClient.Builder()
+            OkHttpClient.Builder builder = new OkHttpClient.Builder()
                     .connectTimeout(props.getConnectTimeout())
                     .readTimeout(props.getReadTimeout())
                     .writeTimeout(props.getWriteTimeout())
                     .followRedirects(props.isFollowRedirects())
                     .followSslRedirects(props.isFollowSslRedirects())
                     .connectionPool(pool)
-                    .sslSocketFactory(sslSocketFactory, (X509TrustManager) trustAllCerts[0])
-                    .hostnameVerifier((hostname, session) -> true) // Trust all hostnames
                     .addInterceptor(new LoggingInterceptor()) // Add logging interceptor
-                    .build();
+                    ;
+
+            // 默认使用 JVM/系统默认的 TLS 校验；仅当显式配置开启时才启用“不安全信任所有”
+            if (props.isInsecureTrustAll()) {
+                log.warn("OkHttp insecureTrustAll ENABLED. This should NOT be used in production!");
+                final TrustManager[] trustAllCerts = new TrustManager[]{
+                        new X509TrustManager() {
+                            @Override
+                            public void checkClientTrusted(java.security.cert.X509Certificate[] chain, String authType) throws CertificateException {}
+
+                            @Override
+                            public void checkServerTrusted(java.security.cert.X509Certificate[] chain, String authType) throws CertificateException {}
+
+                            @Override
+                            public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+                                return new java.security.cert.X509Certificate[]{};
+                            }
+                        }
+                };
+
+                final SSLContext sslContext = SSLContext.getInstance("TLS");
+                sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
+                final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
+                builder.sslSocketFactory(sslSocketFactory, (X509TrustManager) trustAllCerts[0]);
+                builder.hostnameVerifier((hostname, session) -> true);
+            }
+
+            return builder.build();
 
         } catch (Exception e) {
             log.error("Failed to initialize OkHttpClient", e);

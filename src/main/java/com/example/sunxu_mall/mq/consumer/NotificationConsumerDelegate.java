@@ -7,10 +7,12 @@ import com.example.sunxu_mall.enums.TaskTypeEnum;
 import com.example.sunxu_mall.websocket.WebSocketServer;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  * @author sunxu
@@ -20,8 +22,9 @@ import java.util.Map;
 @Component
 public class NotificationConsumerDelegate {
 
+    @Async("notificationExecutor")
     public void handleMessage(MqMessage message, String topic) {
-        if (message == null) {
+        if (Objects.isNull(message)) {
             return;
         }
         log.info("Notification handling business event: topic={}, type={}, key={}", topic, message.getEventType(), message.getBusinessKey());
@@ -40,7 +43,7 @@ public class NotificationConsumerDelegate {
 
         try {
             ExportExcelDTO dto = JSONUtil.toBean(message.getContent().toString(), ExportExcelDTO.class);
-            if (dto != null && dto.getUserId() != null) {
+            if (Objects.nonNull(dto) && Objects.nonNull(dto.getUserId())) {
                 Map<String, Object> resp = new HashMap<>();
                 resp.put("type", "EXPORT_EXCEL");
                 resp.put("timestamp", System.currentTimeMillis());

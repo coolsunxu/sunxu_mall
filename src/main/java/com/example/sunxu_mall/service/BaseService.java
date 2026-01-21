@@ -1,80 +1,162 @@
 package com.example.sunxu_mall.service;
 
-import cn.hutool.core.collection.CollectionUtil;
-import com.alibaba.excel.EasyExcel;
-import com.alibaba.excel.ExcelWriter;
-import com.alibaba.excel.write.metadata.WriteSheet;
 import com.example.sunxu_mall.dto.BasePageQuery;
-import com.example.sunxu_mall.dto.file.FileDTO;
+import com.example.sunxu_mall.dto.CursorState;
 import com.example.sunxu_mall.exception.BusinessException;
-import com.example.sunxu_mall.model.ResponsePageEntity;
-import com.example.sunxu_mall.util.FileUtil;
-import com.github.pagehelper.PageHelper;
-import com.github.pagehelper.PageInfo;
+import com.example.sunxu_mall.model.ResponseCursorEntity;
+import com.example.sunxu_mall.service.export.ExcelExportService;
+import com.example.sunxu_mall.util.CursorTokenUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.web.multipart.MultipartFile;
 
-import java.io.File;
-import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * @author sunxu
  * @version 1.0
  * @date 2026/1/10 9:35
- * @description 基础服务类，提供通用的分页查询和Excel导出功能 (适配 PageHelper)
+ * @description 基础服务类，提供通用的游标分页查询能力（已移除 PageHelper，统一游标分页）
  */
 @Slf4j
 public abstract class BaseService<K, V extends BasePageQuery> {
 
-    private static final String FILE_TYPE_EXCEL = "application/vnd.ms-excel";
-    private static final String FILE_BIZ_TYPE = "file";
-
-    @Value("${mall.mgt.exportPageSize:2}")
-    private int exportPageSize;
-
-    @Value("${mall.mgt.sheetDataSize:4}")
-    private int sheetDataSize;
-
-    @Value("${mall.mgt.temp-path:./temp/}")
-    private String tempFilePath;
-
     @Autowired
-    private UploadService uploadService;
+    private ExcelExportService excelExportService;
 
     /**
-     * 子类需实现此方法，根据查询条件返回列表数据
+     * 子类需实现此方法，根据查询条件返回列表数据（带 limit）
+     * SQL 应显式包含 limit 子句
      *
      * @param query 查询条件
+     * @param limit 限制条数
      * @return 数据列表
      */
-    protected abstract List<K> selectList(V query);
+    protected abstract List<K> selectListWithLimit(V query, int limit);
 
     /**
-     * 通用的分页接口
+     * 子类需实现此方法，根据游标条件返回列表数据（带 limit）
+     * SQL 应显式包含：where id < cursorId order by id desc limit #{limit}
+     *
+     * @param query    查询条件
+     * @param cursorId 游标 ID（可为 null，表示从头开始）
+     * @param limit    限制条数
+     * @return 数据列表
+     */
+    protected abstract List<K> selectListByCursorWithLimit(V query, Long cursorId, int limit);
+
+    /**
+     * 子类需实现此方法，提取实体的 ID 用作游标
+     *
+     * @param entity 实体对象
+     * @return 实体 ID
+     */
+    protected abstract Long extractEntityId(K entity);
+
+    /**
+     * 双向游标分页查询，支持在已访问页内跳转
+     * <p>
+     * 游标语义：pageCursorMap 存储 pageNum -> afterCursor（该页最后一条记录的 ID）
+     * - 第 1 页：cursorId = null（从头开始）
+     * - 第 N 页（N > 1）：cursorId = state.getCursorForPage(N - 1)，即上一页的 afterCursor
+     * <p>
+     * 注意：不支持直接跳到未访问的页，必须从第 1 页逐页翻页或在已访问页内跳转
      *
      * @param query 查询条件
-     * @return 分页数据
+     * @return 游标分页结果
      */
-    public ResponsePageEntity<K> searchByPage(V query) {
-        Integer pageNum = query.getPageNum();
+    public ResponseCursorEntity<K> searchByBidirectionalCursor(V query) {
         Integer pageSize = query.getPageSize();
+        Integer pageNum = query.getPageNum();
+        String cursorToken = query.getCursorToken();
 
-        // 默认分页参数
-        if (pageNum == null) pageNum = 1;
-        if (pageSize == null) pageSize = 10;
+        // 参数校验和默认值
+        if (Objects.isNull(pageSize) || pageSize < 1) {
+            pageSize = 10;
+        }
+        if (Objects.isNull(pageNum) || pageNum < 1) {
+            pageNum = 1;
+        }
 
-        PageHelper.startPage(pageNum, pageSize);
-        List<K> dataList = selectList(query);
-        PageInfo<K> pageInfo = new PageInfo<>(dataList);
+        // 解码游标状态
+        CursorState state = CursorTokenUtil.decode(cursorToken);
+        if (Objects.isNull(state)) {
+            // 首次查询，创建初始状态
+            state = CursorTokenUtil.createInitialState(pageNum, pageSize);
+        } else {
+            // P1：语义自洽 - token 绑定 pageSize，避免用户篡改导致“已访问页”的游标语义错乱
+            if (Objects.nonNull(state.getPageSize()) && !state.getPageSize().equals(pageSize)) {
+                throw new BusinessException("pageSize与cursorToken不一致，请重新从第一页查询");
+            }
+        }
 
-        return new ResponsePageEntity<>((long) pageNum, (long) pageSize, pageInfo.getTotal(), dataList);
+        // 计算查询用的游标 ID
+        // - 第 1 页：cursorId = null
+        // - 第 N 页（N > 1）：cursorId = state.getCursorForPage(N - 1)
+        Long cursorId = null;
+        if (pageNum > 1) {
+            cursorId = state.getCursorForPage(pageNum - 1);
+            // 未访问页拦截：如果请求的页码 > 1 但没有前一页的游标，说明用户跳到了未访问的页
+            if (Objects.isNull(cursorId)) {
+                throw new BusinessException("只能跳转到已访问页，请从第一页逐页翻页后再尝试跳转");
+            }
+        }
+
+        // 执行游标查询（始终使用 NEXT 方向：id < cursorId order by id desc limit #{fetchSize}）
+        int fetchSize = pageSize + 1;
+        List<K> dataList = selectListByCursorWithLimit(query, cursorId, fetchSize);
+
+        // 判断是否有下一页
+        boolean hasNext = Objects.nonNull(dataList) && dataList.size() > pageSize;
+        if (hasNext) {
+            dataList = dataList.subList(0, pageSize);
+        }
+
+        // 获取当前页最后一条记录的 ID 作为本页的 afterCursor
+        Long afterCursor = null;
+        if (Objects.nonNull(dataList) && !dataList.isEmpty()) {
+            afterCursor = extractEntityId(dataList.get(dataList.size() - 1));
+        }
+
+        // 更新游标状态
+        state.setPageNum(pageNum);
+        state.setPageSize(pageSize);
+        state.setLastId(afterCursor);
+
+        // 记录当前页的 afterCursor，供后续页使用
+        if (Objects.nonNull(afterCursor)) {
+            state.setCursorForPage(pageNum, afterCursor);
+        }
+
+        // 生成新的游标令牌
+        String newCursorToken = CursorTokenUtil.encode(state);
+
+        // 判断是否有上一页
+        boolean hasPrev = pageNum > 1;
+        // P1：补齐响应语义 - prevCursorId 表示“查询上一页所需的 cursorId（即上一页的上一页 afterCursor）”
+        // - 上一页是第 1 页时，cursorId = null
+        // - 上一页是第 M 页(M>1)时，cursorId = state.getCursorForPage(M-1)
+        Long prevCursorId = null;
+        if (pageNum > 2) {
+            prevCursorId = state.getCursorForPage(pageNum - 2);
+        }
+
+        // 构建响应
+        ResponseCursorEntity<K> response = new ResponseCursorEntity<>();
+        response.setPageSize((long) pageSize);
+        response.setNextCursorId(afterCursor);
+        response.setHasNext(hasNext);
+        response.setList(dataList);
+        response.setCursorToken(newCursorToken);
+        response.setCurrentPageNum(pageNum);
+        response.setPrevCursorId(prevCursorId);
+        response.setHasPrev(hasPrev);
+
+        return response;
     }
 
     /**
-     * 公共excel导出方法
+     * 公共excel导出方法（使用游标分页，不再依赖 PageHelper）
      *
      * @param query     查询条件
      * @param fileName  文件名称
@@ -82,134 +164,12 @@ public abstract class BaseService<K, V extends BasePageQuery> {
      * @return 下载地址
      */
     public String export(V query, String fileName, String clazzName) {
-        File file = prepareExportFile(fileName);
-
-        // 获取总数
-        long totalCount = getTotalCount(query);
-
-        // 获取导出实体类
-        Class<?> clazz = getExportClass(clazzName);
-
-        ExcelWriter excelWriter = null;
-        try {
-            excelWriter = EasyExcel.write(file).build();
-            
-            // 执行核心写入逻辑
-            fillExcelData(excelWriter, query, totalCount, clazz);
-
-        } catch (Exception e) {
-            log.warn("Export Excel file exception", e);
-            throw new BusinessException("导出Excel文件异常: " + e.getMessage());
-        } finally {
-            if (excelWriter != null) {
-                excelWriter.finish();
-            }
-        }
-
-        try {
-            return uploadFileToOss(fileName, file, file.getAbsolutePath());
-        } finally {
-            // 删除临时文件，防止磁盘写满
-            if (file != null && file.exists()) {
-                boolean deleted = file.delete();
-                if (!deleted) {
-                    log.warn("Failed to delete temp file: {}", file.getAbsolutePath());
-                }
-            }
-        }
-    }
-
-    private File prepareExportFile(String fileName) {
-        String downloadPath = tempFilePath + fileName + ".xlsx";
-        File file = new File(downloadPath);
-        File parentFile = file.getParentFile();
-        if (parentFile != null && !parentFile.exists()) {
-            parentFile.mkdirs();
-        }
-        return file;
-    }
-
-    private long getTotalCount(V query) {
-        query.setPageNum(1);
-        query.setPageSize(1);
-        PageHelper.startPage(1, 1, true);
-        List<K> countList = selectList(query);
-        PageInfo<K> countPageInfo = new PageInfo<>(countList);
-        return countPageInfo.getTotal();
-    }
-
-    private Class<?> getExportClass(String clazzName) {
-        if (clazzName == null) {
-            return null;
-        }
-        try {
-            return Class.forName(clazzName);
-        } catch (ClassNotFoundException e) {
-            log.warn("Data export exception, class not found: {}", clazzName);
-            throw new BusinessException(String.format("数据导出异常，没有找到类:%s", clazzName));
-        }
-    }
-
-    private void fillExcelData(ExcelWriter excelWriter, V query, long totalCount, Class<?> clazz) {
-        // 计算 Sheet 数量
-        int sheetCount = (int) ((totalCount + sheetDataSize - 1) / sheetDataSize);
-        if (sheetCount == 0) {
-            sheetCount = 1;
-        }
-        // 每个 Sheet 需要循环查询数据库的次数
-        int loopCount = (sheetDataSize + exportPageSize - 1) / exportPageSize;
-
-        // 恢复分页大小
-        query.setPageSize(exportPageSize);
-
-        // 全局页码计数器
-        int globalPageNo = 1;
-
-        for (int sheetIndex = 1; sheetIndex <= sheetCount; sheetIndex++) {
-            WriteSheet writeSheet = buildWriteSheet(sheetIndex, clazz);
-            
-            int currentLoop = 0;
-            while (currentLoop < loopCount) {
-                query.setPageNum(globalPageNo);
-                PageHelper.startPage(globalPageNo, exportPageSize, false);
-                List<K> dataEntities = selectList(query);
-                
-                if (CollectionUtil.isEmpty(dataEntities)) {
-                    if (sheetIndex == 1 && currentLoop == 0) {
-                            excelWriter.write(Collections.emptyList(), writeSheet);
-                    }
-                    break;
-                }
-
-                excelWriter.write(dataEntities, writeSheet);
-
-                globalPageNo++;
-                currentLoop++;
-                
-                if (dataEntities.size() < exportPageSize) {
-                    break;
-                }
-            }
-        }
-    }
-
-    private WriteSheet buildWriteSheet(int sheetIndex, Class<?> clazz) {
-        String sheetName = "Sheet" + sheetIndex;
-        if (clazz != null) {
-            return EasyExcel.writerSheet(sheetName).head(clazz).build();
-        } else {
-            return EasyExcel.writerSheet(sheetName).build();
-        }
-    }
-
-    private String uploadFileToOss(String fileName, File file, String defaultPath) {
-        try {
-            MultipartFile multipartFile = FileUtil.toMultipartFile(fileName, file);
-            FileDTO fileDTO = uploadService.upload(multipartFile, FILE_BIZ_TYPE, FILE_TYPE_EXCEL);
-            return fileDTO.getDownloadUrl();
-        } catch (Exception e) {
-            log.warn("Failed to upload excel file to oss server, return local path. Reason: {}", e.getMessage());
-            return defaultPath;
-        }
+        return excelExportService.export(
+                query,
+                fileName,
+                clazzName,
+                this::selectListByCursorWithLimit,
+                this::extractEntityId
+        );
     }
 }

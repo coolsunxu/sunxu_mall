@@ -75,30 +75,33 @@ public class ProductService extends BaseService<ProductEntity, ProductQueryDTO> 
     }
 
     @Override
-    protected List<ProductEntity> selectList(ProductQueryDTO queryDTO) {
-        ProductEntityExample example = new ProductEntityExample();
-        ProductEntityExample.Criteria criteria = example.createCriteria();
+    protected List<ProductEntity> selectListWithLimit(ProductQueryDTO queryDTO, int limit) {
+        return productMapper.selectListWithLimit(
+                queryDTO.getName(),
+                queryDTO.getModel(),
+                queryDTO.getCategoryId(),
+                queryDTO.getBrandId(),
+                queryDTO.getProductGroupId(),
+                limit
+        );
+    }
 
-        // Default filter: not deleted
-        criteria.andIsDelEqualTo(false);
+    @Override
+    protected List<ProductEntity> selectListByCursorWithLimit(ProductQueryDTO queryDTO, Long cursorId, int limit) {
+        return productMapper.selectByCursorWithLimit(
+                queryDTO.getName(),
+                queryDTO.getModel(),
+                queryDTO.getCategoryId(),
+                queryDTO.getBrandId(),
+                queryDTO.getProductGroupId(),
+                cursorId,
+                limit
+        );
+    }
 
-        if (StringUtils.isNotBlank(queryDTO.getName())) {
-            criteria.andNameLike("%" + queryDTO.getName() + "%");
-        }
-        if (StringUtils.isNotBlank(queryDTO.getModel())) {
-            criteria.andModelLike("%" + queryDTO.getModel() + "%");
-        }
-        if (Objects.nonNull(queryDTO.getCategoryId())) {
-            criteria.andCategoryIdEqualTo(queryDTO.getCategoryId());
-        }
-        if (Objects.nonNull(queryDTO.getBrandId())) {
-            criteria.andBrandIdEqualTo(queryDTO.getBrandId());
-        }
-        if (Objects.nonNull(queryDTO.getProductGroupId())) {
-            criteria.andProductGroupIdEqualTo(queryDTO.getProductGroupId());
-        }
-
-        return productMapper.selectByExample(example);
+    @Override
+    protected Long extractEntityId(ProductEntity entity) {
+        return Objects.isNull(entity) ? null : entity.getId();
     }
 
 
@@ -135,7 +138,7 @@ public class ProductService extends BaseService<ProductEntity, ProductQueryDTO> 
 
         Long productId = productEntity.getId();
         ProductEntity current = productMapper.selectByPrimaryKey(productId);
-        if (current == null) {
+        if (Objects.isNull(current)) {
             throw new BusinessException(USER_NOT_EXIST.getCode(), "Product not found");
         }
 

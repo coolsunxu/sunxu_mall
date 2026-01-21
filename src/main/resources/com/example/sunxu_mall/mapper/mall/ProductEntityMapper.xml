@@ -587,4 +587,57 @@
     where id = #{id,jdbcType=BIGINT}
       and version = #{version,jdbcType=INTEGER}
   </update>
+  
+  <!-- 带 limit 的列表查询（用于导出等场景） -->
+  <select id="selectListWithLimit" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List" />
+    from mall_product
+    where is_del = 0
+    <if test="name != null and name != ''">
+      and name like concat('%', #{name}, '%')
+    </if>
+    <if test="model != null and model != ''">
+      and model like concat('%', #{model}, '%')
+    </if>
+    <if test="categoryId != null">
+      and category_id = #{categoryId}
+    </if>
+    <if test="brandId != null">
+      and brand_id = #{brandId}
+    </if>
+    <if test="productGroupId != null">
+      and product_group_id = #{productGroupId}
+    </if>
+    order by id desc
+    limit #{limit}
+  </select>
+  
+  <!-- 带 limit 的游标分页查询 -->
+  <select id="selectByCursorWithLimit" resultMap="BaseResultMap">
+    select
+    <include refid="Base_Column_List" />
+    from mall_product
+    where is_del = 0
+    <if test="cursorId != null">
+      and id &lt; #{cursorId}
+    </if>
+    <if test="name != null and name != ''">
+      and name like concat('%', #{name}, '%')
+    </if>
+    <if test="model != null and model != ''">
+      and model like concat('%', #{model}, '%')
+    </if>
+    <if test="categoryId != null">
+      and category_id = #{categoryId}
+    </if>
+    <if test="brandId != null">
+      and brand_id = #{brandId}
+    </if>
+    <if test="productGroupId != null">
+      and product_group_id = #{productGroupId}
+    </if>
+    order by id desc
+    limit #{limit}
+  </select>
 </mapper>

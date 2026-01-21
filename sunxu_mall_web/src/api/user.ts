@@ -1,10 +1,10 @@
 import request from '../utils/request'
-import type { 
-  UserVO, 
-  UserCreateDTO, 
-  UserUpdateDTO, 
-  UserQueryDTO, 
-  ResponsePageEntity 
+import type {
+  UserVO,
+  UserCreateDTO,
+  UserUpdateDTO,
+  UserQueryDTO,
+  ResponseCursorEntity
 } from '../types'
 
 /**
@@ -15,10 +15,21 @@ export function getUserById(id: number): Promise<UserVO> {
 }
 
 /**
- * 分页查询用户列表
+ * 查询用户列表（游标分页）
+ * 支持向前/向后翻页，可指定页码
+ * 
+ * 注意：searchByPage 和 searchByCursor 已下线，统一使用此接口
  */
-export function searchUserByPage(data: UserQueryDTO): Promise<ResponsePageEntity<UserVO>> {
-  return request.post('/user/searchByPage', data)
+export function searchUsers(data: UserQueryDTO): Promise<ResponseCursorEntity<UserVO>> {
+  return request.post('/user/searchByBidirectionalCursor', data)
+}
+
+/**
+ * 兼容旧调用（页面仍在使用该名字）
+ * 注意：后端仍是 searchByBidirectionalCursor
+ */
+export function searchUserByBidirectionalCursor(data: UserQueryDTO): Promise<ResponseCursorEntity<UserVO>> {
+  return searchUsers(data)
 }
 
 /**

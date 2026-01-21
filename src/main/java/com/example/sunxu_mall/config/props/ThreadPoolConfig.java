@@ -8,6 +8,8 @@ import java.util.Map;
 
 /**
  * 异步线程池配置属性
+ *
+ * @author sunxu
  */
 @Data
 @Component

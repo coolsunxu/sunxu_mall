@@ -24,7 +24,7 @@ public class LocalTaskCreateListener {
 
     private final CommonTaskService commonTaskService;
 
-    @Async
+    @Async("commonTaskExecutor")
     @EventListener(condition = "#event.topic == '" + MQConstant.MALL_COMMON_TASK_CREATE_TOPIC + "'")
     public void onMessage(MqEvent event) {
         log.info("Received Local create task request: {}", event.getMessage());
@@ -34,7 +34,7 @@ public class LocalTaskCreateListener {
             CommonTaskRequestDTO dto = JSONUtil.toBean(jsonStr, CommonTaskRequestDTO.class);
             commonTaskService.createTaskFromRequest(dto);
         } catch (Exception e) {
-            log.error("Failed to process create task request: {}", event.getMessage(), e);
+            log.warn("Failed to process create task request: {}", event.getMessage(), e);
         }
     }
 }

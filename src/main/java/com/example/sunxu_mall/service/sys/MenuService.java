@@ -1,6 +1,6 @@
 package com.example.sunxu_mall.service.sys;
 
-import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
+import org.springframework.util.CollectionUtils;
 import com.example.sunxu_mall.dto.sys.MenuTreeDTO;
 import com.example.sunxu_mall.entity.sys.MenuEntity;
 import com.example.sunxu_mall.entity.sys.MenuEntityExample;
@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 /**
  * @author sunxu
@@ -40,7 +41,7 @@ public class MenuService {
     @Retryable(value = OptimisticLockingFailureException.class, maxAttempts = 3, backoff = @Backoff(delay = 100))
     public void updateMenu(MenuEntity menu) {
         MenuEntity dbMenu = menuEntityMapper.selectByPrimaryKey(menu.getMenuId());
-        if (dbMenu == null) {
+        if (Objects.isNull(dbMenu)) {
             throw new RuntimeException("Menu not found");
         }
         BeanCopyUtils.copyNonNullProperties(menu, dbMenu);
@@ -86,7 +87,7 @@ public class MenuService {
                 .sort(menuEntity.getSortNumber())
                 .icon(menuEntity.getIcon())
                 .path(menuEntity.getPath())
-                .hidden(menuEntity.getHide() != null && menuEntity.getHide() == 1)
+                .hidden(Objects.nonNull(menuEntity.getHide()) && menuEntity.getHide() == 1)
                 .component(menuEntity.getComponent())
                 .type(menuEntity.getMenuType())
                 .permission(menuEntity.getAuthority())
