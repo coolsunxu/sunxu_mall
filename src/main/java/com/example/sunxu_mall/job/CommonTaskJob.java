@@ -6,7 +6,7 @@ import com.example.sunxu_mall.entity.common.CommonTaskEntity;
 import com.example.sunxu_mall.enums.ExcelBizTypeEnum;
 import com.example.sunxu_mall.enums.TaskTypeEnum;
 import com.example.sunxu_mall.service.common.CommonTaskService;
-import com.example.sunxu_mall.service.task.impl.ExcelExportTask;
+import com.example.sunxu_mall.service.task.IAsyncTask;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -27,7 +27,7 @@ import java.util.Objects;
 public class CommonTaskJob {
 
     private final CommonTaskService commonTaskService;
-    private final ExcelExportTask excelExportTask;
+    private final IAsyncTask excelExportTask;
 
     /**
      * 定时轮询待处理任务 (兜底机制)

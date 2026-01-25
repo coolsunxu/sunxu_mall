@@ -193,10 +193,10 @@ ok:
 
 # 文件上传配置
 upload:
-  mode: qiniu # local, qiniu, s3
+  mode: local # local, qiniu, s3
   local:
-    path: ./upload/
-    domain: http://localhost:8011/files
+    path: E:\sunxu\http
+    domain: http://localhost:8084
   qiniu:
     access-key: ${QINIU_ACCESS_KEY}
     secret-key: ${QINIU_SECRET_KEY}

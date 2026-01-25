@@ -6,7 +6,7 @@ import com.example.sunxu_mall.entity.common.CommonTaskEntity;
 import com.example.sunxu_mall.enums.TaskStatusEnum;
 import com.example.sunxu_mall.enums.TaskTypeEnum;
 import com.example.sunxu_mall.mapper.common.CommonTaskEntityMapper;
-import com.example.sunxu_mall.service.task.impl.ExcelExportTask;
+import com.example.sunxu_mall.service.task.IAsyncTask;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
@@ -24,7 +24,7 @@ import java.util.Objects;
 public class TaskConsumerDelegate {
 
     private final CommonTaskEntityMapper commonTaskEntityMapper;
-    private final ExcelExportTask excelExportTask;
+    private final IAsyncTask excelExportTask;
 
     @Async("commonTaskExecutor")
     public void consume(Long taskId) {

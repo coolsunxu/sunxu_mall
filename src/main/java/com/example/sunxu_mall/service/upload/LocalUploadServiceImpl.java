@@ -3,7 +3,6 @@ package com.example.sunxu_mall.service.upload;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.IdUtil;
-import cn.hutool.core.util.StrUtil;
 import com.example.sunxu_mall.config.props.UploadConfig;
 import com.example.sunxu_mall.dto.file.FileDTO;
 import com.example.sunxu_mall.exception.BusinessException;
@@ -33,38 +32,33 @@ public class LocalUploadServiceImpl implements UploadService {
     @Override
     public FileDTO upload(MultipartFile file, String bizType, String fileType) {
         if (file == null || file.isEmpty()) {
-            throw new BusinessException("上传文件不能为空");
+            throw new BusinessException("file cannot be empty");
         }
 
         try {
             String originalFilename = file.getOriginalFilename();
             String suffix = FileUtil.getSuffix(originalFilename);
             String fileName = IdUtil.simpleUUID() + "." + suffix;
-            
+
             // 按日期生成子目录: yyyyMMdd
             String datePath = DateUtil.format(new Date(), "yyyyMMdd");
-            
+
             // 基础路径
             String basePath = properties.getLocal().getPath();
-            if (StrUtil.isBlank(basePath)) {
-                basePath = System.getProperty("user.dir") + "/upload/";
+
+            // 确保基础路径以分隔符结尾，避免路径拼接错误
+            if (!basePath.endsWith(File.separator)) {
+                basePath += File.separator;
             }
-            
+
             // 完整保存路径
-            String fullPath = basePath + File.separator + datePath + File.separator + fileName;
+            String fullPath = basePath + datePath + File.separator + fileName;
             File dest = new File(fullPath);
             FileUtil.touch(dest);
             file.transferTo(dest);
 
             // 生成访问URL
             String domain = properties.getLocal().getDomain();
-            if (StrUtil.isBlank(domain)) {
-                domain = "http://localhost:8011/files"; // 默认本地访问前缀
-            }
-            // 确保domain末尾没有/
-            if (domain.endsWith("/")) {
-                domain = domain.substring(0, domain.length() - 1);
-            }
             
             String downloadUrl = domain + "/" + datePath + "/" + fileName;
 
@@ -78,8 +72,8 @@ public class LocalUploadServiceImpl implements UploadService {
                     .build();
 
         } catch (IOException e) {
-            log.error("文件上传失败", e);
-            throw new BusinessException("文件上传失败: " + e.getMessage());
+            log.warn("upload file failed", e);
+            throw new BusinessException("upload file failed: " + e.getMessage());
         }
     }
 }
