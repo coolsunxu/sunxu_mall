@@ -96,4 +96,34 @@ public interface ProductAttributeEntityMapper {
      * @mbg.generated
      */
     int updateByPrimaryKey(ProductAttributeEntity row);
+
+    // ==================== 自定义方法（用于差量更新） ====================
+
+    /**
+     * 根据商品ID查询未删除的属性列表
+     *
+     * @param productId 商品ID
+     * @return 属性列表
+     */
+    List<ProductAttributeEntity> selectByProductId(@Param("productId") Long productId);
+
+    /**
+     * 批量插入属性
+     *
+     * @param list 属性列表
+     * @return 插入行数
+     */
+    int batchInsert(@Param("list") List<ProductAttributeEntity> list);
+
+    /**
+     * 批量软删除指定ID的属性
+     *
+     * @param ids           属性ID列表
+     * @param updateUserId  更新用户ID
+     * @param updateUserName 更新用户名
+     * @return 更新行数
+     */
+    int batchSoftDeleteByIds(@Param("ids") List<Long> ids,
+                              @Param("updateUserId") Long updateUserId,
+                              @Param("updateUserName") String updateUserName);
 }

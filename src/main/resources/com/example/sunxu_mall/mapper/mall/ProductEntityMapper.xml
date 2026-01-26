@@ -522,6 +522,10 @@
       version = #{version,jdbcType=INTEGER}
     where id = #{id,jdbcType=BIGINT}
   </update>
+  <!--
+    updateProductInfoWithVersion: 仅允许更新业务字段（白名单）
+    禁止更新: create_user_id, create_user_name, create_time, is_del, del_id, hash
+  -->
   <update id="updateProductInfoWithVersion" parameterType="com.example.sunxu_mall.entity.mall.ProductEntity">
     update mall_product
     <set>
@@ -552,15 +556,10 @@
       <if test="price != null">
         price = #{price,jdbcType=DECIMAL},
       </if>
-      <if test="createUserId != null">
-        create_user_id = #{createUserId,jdbcType=BIGINT},
+      <if test="coverUrl != null">
+        cover_url = #{coverUrl,jdbcType=VARCHAR},
       </if>
-      <if test="createUserName != null">
-        create_user_name = #{createUserName,jdbcType=VARCHAR},
-      </if>
-      <if test="createTime != null">
-        create_time = #{createTime,jdbcType=TIMESTAMP},
-      </if>
+      <!-- 更新审计字段（由服务层设置） -->
       <if test="updateUserId != null">
         update_user_id = #{updateUserId,jdbcType=BIGINT},
       </if>
@@ -569,18 +568,6 @@
       </if>
       <if test="updateTime != null">
         update_time = #{updateTime,jdbcType=TIMESTAMP},
-      </if>
-      <if test="isDel != null">
-        is_del = #{isDel,jdbcType=BIT},
-      </if>
-      <if test="delId != null">
-        del_id = #{delId,jdbcType=BIGINT},
-      </if>
-      <if test="hash != null">
-        hash = #{hash,jdbcType=VARCHAR},
-      </if>
-      <if test="coverUrl != null">
-        cover_url = #{coverUrl,jdbcType=VARCHAR},
       </if>
       version = version + 1
     </set>

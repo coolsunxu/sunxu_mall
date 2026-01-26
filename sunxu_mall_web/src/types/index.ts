@@ -167,6 +167,31 @@ export interface ProductVO {
   coverUrl: string
   createTime: string
   updateTime: string
+  version: number
+}
+
+// 商品更新参数 - 对应后端 UpdateProductDTO
+export interface UpdateProductDTO {
+  version: number
+  categoryId?: number
+  brandId?: number
+  unitId?: number
+  productGroupId?: number
+  name?: string
+  model?: string
+  quantity?: number
+  remainQuantity?: number
+  price?: number
+  coverUrl?: string
+  skuAttributes?: UpdateProductAttributeDTO[]
+}
+
+// 商品属性更新请求 - 对应后端 UpdateProductAttributeDTO
+export interface UpdateProductAttributeDTO {
+  id?: number
+  attributeId: number
+  attributeValueId: number
+  deleted?: boolean
 }
 
 // 商品查询参数 - 对应后端 ProductQueryDTO

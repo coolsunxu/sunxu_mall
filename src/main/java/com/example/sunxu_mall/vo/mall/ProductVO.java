@@ -49,4 +49,7 @@ public class ProductVO implements Serializable {
 
     @Schema(description = "Update Time")
     private LocalDateTime updateTime;
+
+    @Schema(description = "Version")
+    private Integer version;
 }

@@ -21,7 +21,7 @@ public enum ExcelBizTypeEnum {
     ATTRIBUTE((byte) 103, "", "属性", "", ""),
     ATTRIBUTE_VALUE((byte) 104, "", "属性值", "", ""),
     CATEGORY((byte) 105, "", "分类", "", ""),
-    PRODUCT((byte) 106, "", "商品", "", ""),
+    PRODUCT((byte) 106, "com.example.sunxu_mall.dto.mall.ProductQueryDTO", "商品", "productService", "com.example.sunxu_mall.entity.mall.ProductEntity"),
     
     COMMON_PHOTO_GROUP((byte) 110, "", "图片组", "", ""),
     COMMON_NOTIFY((byte) 111, "", "通知", "", ""),
