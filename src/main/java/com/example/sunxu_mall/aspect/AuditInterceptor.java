@@ -63,21 +63,16 @@ public class AuditInterceptor implements Interceptor {
     private Object unwrapTarget(Object parameter) {
         if (parameter instanceof Map) {
             Map<?, ?> map = (Map<?, ?>) parameter;
-            Object record = map.get("record");
-            if (Objects.nonNull(record)) {
-                return record;
-            }
-            Object et = map.get("et");
-            if (Objects.nonNull(et)) {
-                return et;
-            }
-            Object entity = map.get("entity");
-            if (Objects.nonNull(entity)) {
-                return entity;
-            }
-            Object param1 = map.get("param1");
-            if (Objects.nonNull(param1)) {
-                return param1;
+            // 注意：MyBatis 的 MapperMethod$ParamMap 对不存在的 key 调 get() 会抛 BindingException
+            // 因此这里必须先 containsKey 再 get
+            String[] keys = new String[]{"row", "record", "et", "entity", "param1"};
+            for (String key : keys) {
+                if (map.containsKey(key)) {
+                    Object val = map.get(key);
+                    if (Objects.nonNull(val)) {
+                        return val;
+                    }
+                }
             }
             return null;
         }

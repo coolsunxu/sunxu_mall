@@ -1,8 +1,10 @@
 package com.example.sunxu_mall.entity.mall;
 
+import lombok.Builder;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
+@Builder
 public class CommonPhotoEntity implements Serializable {
     /**
      *

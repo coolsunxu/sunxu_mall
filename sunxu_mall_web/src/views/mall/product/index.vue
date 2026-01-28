@@ -23,6 +23,7 @@
         />
         <el-button class="filter-item" size="small" type="success" icon="Search" @click="handleSearch" style="margin-left: 10px;">搜索</el-button>
         <el-button class="filter-item" size="small" type="info" icon="Refresh" @click="resetAndFetch">刷新</el-button>
+        <el-button class="filter-item" size="small" type="primary" icon="Plus" @click="handleAdd" style="margin-left: 10px;">新增商品</el-button>
         <el-button class="filter-item" size="small" type="warning" icon="Download" @click="handleExport" style="margin-left: 10px;">导出</el-button>
       </div>
     </div>
@@ -70,17 +71,18 @@
           {{ formatTime(scope.row.createTime) }}
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="120">
+      <el-table-column label="操作" width="200">
         <template #default="scope">
           <el-button type="primary" size="small" @click="handleEdit(scope.row)">编辑</el-button>
+          <el-button type="danger" size="small" @click="handleDelete(scope.row)">删除</el-button>
         </template>
       </el-table-column>
     </el-table>
 
-    <!-- 编辑对话框 -->
+    <!-- 新增/编辑对话框 -->
     <el-dialog
       v-model="dialogVisible"
-      title="编辑商品"
+      :title="isEdit ? '编辑商品' : '新增商品'"
       width="70%"
     >
       <el-form :model="form" label-width="100px" :rules="rules" ref="formRef">
@@ -130,9 +132,9 @@
                   </el-select>
                 </el-form-item>
               </el-col>
-              <el-col :span="12">
+              <el-col :span="12" v-if="isEdit">
                 <el-form-item label="商品组ID" prop="productGroupId">
-                  <el-input-number v-model="form.productGroupId" :controls="false" placeholder="请输入商品组ID" style="width: 100%" />
+                  <el-input-number v-model="form.productGroupId" :controls="false" placeholder="请输入商品组ID" style="width: 100%" disabled />
                 </el-form-item>
               </el-col>
             </el-row>
@@ -147,12 +149,15 @@
                 <el-form-item label="封面图片" prop="coverUrl">
                   <el-input v-model="form.coverUrl" placeholder="请输入图片URL地址">
                     <template #append>
-                      <el-popover placement="top" :width="200" trigger="hover" v-if="form.coverUrl">
-                        <template #reference>
-                          <el-icon style="cursor: pointer"><Picture /></el-icon>
-                        </template>
-                        <el-image :src="form.coverUrl" fit="cover"></el-image>
-                      </el-popover>
+                      <el-upload
+                        class="upload-demo"
+                        action="#"
+                        :auto-upload="true"
+                        :show-file-list="false"
+                        :http-request="(opt) => handleUpload(opt, 'cover')"
+                      >
+                        <el-icon style="cursor: pointer"><Upload /></el-icon>
+                      </el-upload>
                     </template>
                   </el-input>
                 </el-form-item>
@@ -165,7 +170,7 @@
                   <el-input-number v-model="form.quantity" :min="0" style="width: 100%" placeholder="请输入库存"></el-input-number>
                 </el-form-item>
               </el-col>
-              <el-col :span="12">
+              <el-col :span="12" v-if="isEdit">
                 <el-form-item label="剩余库存" prop="remainQuantity">
                   <el-input-number v-model="form.remainQuantity" :min="0" style="width: 100%" placeholder="请输入剩余库存"></el-input-number>
                 </el-form-item>
@@ -175,36 +180,109 @@
 
           <!-- 规格属性页签 -->
           <el-tab-pane label="规格属性">
-            <el-alert title="此处修改将采用差量更新模式，不勾选删除则视为更新或新增" type="info" :closable="false" style="margin-bottom: 10px;" />
+            <el-alert v-if="isEdit" title="此处修改将采用差量更新模式，不勾选删除则视为更新或新增" type="info" :closable="false" style="margin-bottom: 10px;" />
+            
+            <div v-if="!isEdit" style="margin-bottom: 20px;">
+              <h4 style="margin: 0 0 10px 0;">SPU 属性 (用于确定商品组)</h4>
+              <el-table :data="form.spuAttributes" border style="width: 100%">
+                <el-table-column label="属性名称">
+                  <template #default="scope">
+                    <el-select v-model="scope.row.attributeId" placeholder="请选择属性" style="width: 100%" size="small">
+                      <el-option v-for="item in attributeOptions" :key="item.id" :label="item.name" :value="item.id" />
+                    </el-select>
+                  </template>
+                </el-table-column>
+                <el-table-column label="属性值">
+                  <template #default="scope">
+                    <el-select v-model="scope.row.attributeValueId" placeholder="请选择值" style="width: 100%" size="small">
+                      <el-option 
+                        v-for="item in getAttrValues(scope.row.attributeId)" 
+                        :key="item.id" 
+                        :label="item.value" 
+                        :value="item.id" 
+                      />
+                    </el-select>
+                  </template>
+                </el-table-column>
+                <el-table-column label="操作" width="80" align="center">
+                  <template #default="scope">
+                    <el-button type="danger" icon="Delete" circle size="small" @click="removeAttrRow(form.spuAttributes, scope.$index)" />
+                  </template>
+                </el-table-column>
+              </el-table>
+              <el-button type="dashed" style="width: 100%; margin-top: 10px;" @click="addAttrRow(form.spuAttributes!)">
+                <el-icon><Plus /></el-icon> 添加 SPU 属性
+              </el-button>
+            </div>
+
+            <h4 style="margin: 0 0 10px 0;">SKU 属性</h4>
             <el-table :data="form.skuAttributes" border style="width: 100%">
-              <el-table-column label="属性ID" width="120">
+              <el-table-column label="属性名称">
                 <template #default="scope">
-                  <el-input-number v-model="scope.row.attributeId" :controls="false" size="small" />
+                  <el-select v-model="scope.row.attributeId" placeholder="请选择属性" style="width: 100%" size="small" :disabled="isEdit && scope.row.id">
+                    <el-option v-for="item in attributeOptions" :key="item.id" :label="item.name" :value="item.id" />
+                  </el-select>
                 </template>
               </el-table-column>
-              <el-table-column label="属性值ID">
+              <el-table-column label="属性值">
                 <template #default="scope">
-                  <el-input-number v-model="scope.row.attributeValueId" :controls="false" size="small" />
+                  <el-select v-model="scope.row.attributeValueId" placeholder="请选择值" style="width: 100%" size="small" :disabled="isEdit && scope.row.id">
+                    <el-option 
+                      v-for="item in getAttrValues(scope.row.attributeId)" 
+                      :key="item.id" 
+                      :label="item.value" 
+                      :value="item.id" 
+                    />
+                  </el-select>
                 </template>
               </el-table-column>
-              <el-table-column label="操作" width="100" align="center">
+              <el-table-column v-if="isEdit" label="状态" width="100" align="center">
                 <template #default="scope">
                   <el-checkbox v-model="scope.row.deleted" label="删除" />
                 </template>
               </el-table-column>
+              <el-table-column v-else label="操作" width="80" align="center">
+                <template #default="scope">
+                  <el-button type="danger" icon="Delete" circle size="small" @click="removeAttrRow(form.skuAttributes!, scope.$index)" />
+                </template>
+              </el-table-column>
             </el-table>
-            <el-button type="dashed" style="width: 100%; margin-top: 10px;" @click="addAttrRow">
-              <el-icon><Plus /></el-icon> 添加规格属性
+            <el-button type="dashed" style="width: 100%; margin-top: 10px;" @click="addAttrRow(form.skuAttributes!)">
+              <el-icon><Plus /></el-icon> 添加 SKU 属性
             </el-button>
+          </el-tab-pane>
+
+          <!-- 轮播图页签 -->
+          <el-tab-pane label="轮播图片">
+            <el-upload
+              v-model:file-list="photoList"
+              action="#"
+              list-type="picture-card"
+              :auto-upload="true"
+              :http-request="(opt) => handleUpload(opt, 'swiper')"
+              :on-remove="handleRemovePhoto"
+            >
+              <el-icon><Plus /></el-icon>
+            </el-upload>
+          </el-tab-pane>
+
+          <!-- 详情页签 -->
+          <el-tab-pane label="详情描述">
+            <el-input
+              v-model="form.detail"
+              type="textarea"
+              :rows="15"
+              placeholder="请输入商品详情描述（支持 HTML 格式）"
+            />
           </el-tab-pane>
         </el-tabs>
         
-        <el-input v-model="form.version" type="hidden"></el-input>
+        <el-input v-if="isEdit" v-model="form.version" type="hidden"></el-input>
       </el-form>
       <template #footer>
         <span class="dialog-footer">
           <el-button @click="dialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="handleUpdate">确定</el-button>
+          <el-button type="primary" @click="handleSubmit">确定</el-button>
         </span>
       </template>
     </el-dialog>
@@ -224,44 +302,75 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Picture, Plus } from '@element-plus/icons-vue'
-import { searchProductByBidirectionalCursor, updateProduct, getCategoryTree, getAllBrands, getAllUnits, getProductById, exportProducts } from '@/api/product'
+import { Picture, Plus, Delete, Upload } from '@element-plus/icons-vue'
+import { 
+  searchProductByBidirectionalCursor, 
+  updateProduct, 
+  createProduct,
+  deleteProduct,
+  getCategoryTree, 
+  getAllBrands, 
+  getAllUnits, 
+  getAllAttributesWithValues,
+  getProductById, 
+  exportProducts,
+  uploadFile
+} from '@/api/product'
 import PaginationBar from '@/components/PaginationBar.vue'
-import type { ProductVO, ProductQueryDTO, UpdateProductDTO } from '@/types'
+import type { 
+  ProductVO, 
+  ProductQueryDTO, 
+  UpdateProductDTO, 
+  CategoryTree, 
+  Brand, 
+  Unit, 
+  AttributeWithValues,
+  CreateProductDTO
+} from '@/types'
 
 // 基础数据选项
-const categoryOptions = ref<any[]>([])
-const brandOptions = ref<any[]>([])
-const unitOptions = ref<any[]>([])
+const categoryOptions = ref<CategoryTree[]>([])
+const brandOptions = ref<Brand[]>([])
+const unitOptions = ref<Unit[]>([])
+const attributeOptions = ref<AttributeWithValues[]>([])
 
 // 获取基础数据
 const loadBaseOptions = async () => {
   try {
-    const [categories, brands, units] = await Promise.all([
+    const [categories, brands, units, attributes] = await Promise.all([
       getCategoryTree(),
       getAllBrands(),
-      getAllUnits()
+      getAllUnits(),
+      getAllAttributesWithValues()
     ])
     categoryOptions.value = categories
     brandOptions.value = brands
     unitOptions.value = units
+    attributeOptions.value = attributes
   } catch (error) {
     console.error('加载基础数据失败:', error)
   }
 }
 
+// 根据属性ID获取其可选值
+const getAttrValues = (attrId: number) => {
+  const attr = attributeOptions.value.find(a => a.id === attrId)
+  return attr ? attr.values : []
+}
+
 // 属性行操作
-const addAttrRow = () => {
-  if (!form.skuAttributes) {
-    form.skuAttributes = []
-  }
-  form.skuAttributes.push({
-    attributeId: 0,
-    attributeValueId: 0,
+const addAttrRow = (list: any[]) => {
+  list.push({
+    attributeId: undefined,
+    attributeValueId: undefined,
     deleted: false
   })
+}
+
+const removeAttrRow = (list: any[], index: number) => {
+  list.splice(index, 1)
 }
 
 // 查询参数
@@ -285,10 +394,14 @@ const hasNext = ref(true)
 const currentPage = ref(1)
 const maxPageReached = ref(1) // 记录到达的最大页码
 
-// 编辑对话框
+// 对话框状态
 const dialogVisible = ref(false)
+const isEdit = ref(false)
 const formRef = ref()
-const form = reactive<UpdateProductDTO & { id: number }>({
+const photoList = ref<any[]>([])
+
+// 综合表单（合并新增与编辑所需字段）
+const initialForm = (): any => ({
   id: 0,
   version: 0,
   name: '',
@@ -300,8 +413,14 @@ const form = reactive<UpdateProductDTO & { id: number }>({
   brandId: undefined,
   unitId: undefined,
   productGroupId: undefined,
-  coverUrl: ''
+  coverUrl: '',
+  detail: '',
+  spuAttributes: [],
+  skuAttributes: [],
+  photos: []
 })
+
+const form = reactive<any>(initialForm())
 
 // 表单规则
 const rules = reactive({
@@ -315,8 +434,14 @@ const rules = reactive({
   quantity: [
     { required: true, message: '请输入库存', trigger: 'blur' }
   ],
-  remainQuantity: [
-    { required: true, message: '请输入剩余库存', trigger: 'blur' }
+  categoryId: [
+    { required: true, message: '请选择分类', trigger: 'change' }
+  ],
+  brandId: [
+    { required: true, message: '请选择品牌', trigger: 'change' }
+  ],
+  unitId: [
+    { required: true, message: '请选择单位', trigger: 'change' }
   ]
 })
 
@@ -355,7 +480,7 @@ const resetAndFetch = () => {
   fetchData()
 }
 
-// 上一页
+// 分页控制
 const goToPrevPage = () => {
   if (currentPage.value <= 1) return
   currentPage.value--
@@ -363,7 +488,6 @@ const goToPrevPage = () => {
   fetchData()
 }
 
-// 下一页
 const goToNextPage = () => {
   if (!hasNext.value) return
   currentPage.value++
@@ -371,7 +495,6 @@ const goToNextPage = () => {
   fetchData()
 }
 
-// 跳转到指定页（仅限已访问页，不清空 cursorToken）
 const goToPage = (pageNum: number) => {
   if (pageNum < 1 || pageNum > maxPageReached.value) {
     ElMessage.warning(`只能跳转到已访问页（1 ~ ${maxPageReached.value}）`)
@@ -379,7 +502,6 @@ const goToPage = (pageNum: number) => {
   }
   currentPage.value = pageNum
   query.cursorDirection = 'NEXT'
-  // 不清空 cursorToken，后端依赖它定位到已访问的页
   fetchData()
 }
 
@@ -397,9 +519,20 @@ const handleSearch = () => {
   fetchData()
 }
 
+// 处理新增
+const handleAdd = () => {
+  isEdit.value = false
+  Object.assign(form, initialForm())
+  photoList.value = []
+  dialogVisible.value = true
+}
+
 // 处理编辑
 const handleEdit = async (row: ProductVO) => {
-  // 1. 先进行基础数据回显
+  isEdit.value = true
+  Object.assign(form, initialForm())
+  
+  // 1. 基础数据回显
   form.id = row.id
   form.version = row.version
   form.name = row.name
@@ -412,58 +545,120 @@ const handleEdit = async (row: ProductVO) => {
   form.unitId = row.unitId
   form.productGroupId = row.productGroupId
   form.coverUrl = row.coverUrl
-  form.skuAttributes = [] // 清空旧数据
+  form.skuAttributes = []
 
-  // 2. 调用详情接口获取完整的 SKU 属性信息（后端 ProductDetailDTO 包含属性列表）
+  // 2. 获取详情
   try {
     const detail = await getProductById(row.id)
-    if (detail && (detail as any).skuAttributeEntityList) {
-      form.skuAttributes = (detail as any).skuAttributeEntityList.map((attr: any) => ({
-        id: attr.id,
-        attributeId: attr.attributeId,
-        attributeValueId: attr.attributeValueId,
-        deleted: false
-      }))
+    if (detail) {
+      form.detail = (detail as any).detail || ''
+      if ((detail as any).skuAttributeEntityList) {
+        form.skuAttributes = (detail as any).skuAttributeEntityList.map((attr: any) => ({
+          id: attr.id,
+          attributeId: attr.attributeId,
+          attributeValueId: attr.attributeValueId,
+          deleted: false
+        }))
+      }
+      // 轮播图回显
+      if ((detail as any).swiperPhotoList) {
+        photoList.value = (detail as any).swiperPhotoList.map((p: any) => ({
+          name: p.fileName || 'photo',
+          url: p.url
+        }))
+        form.photos = photoList.value.map(p => p.url)
+      }
     }
   } catch (error) {
     console.error('获取商品详情失败:', error)
   }
   
-  // 打开对话框
   dialogVisible.value = true
 }
 
-// 处理更新
-const handleUpdate = async () => {
+// 处理上传
+const handleUpload = async (option: any, type: 'cover' | 'swiper') => {
+  try {
+    const res = await uploadFile(option.file)
+    if (type === 'cover') {
+      form.coverUrl = res.downloadUrl
+      ElMessage.success('封面上传成功')
+    } else {
+      // 这里的 photoList 是 el-upload 自动维护的，我们只需要同步到 form.photos
+      const url = res.downloadUrl
+      // 更新当前上传的这一项的 url
+      option.onSuccess(res, option.file)
+      form.photos.push(url)
+      ElMessage.success('图片上传成功')
+    }
+  } catch (error) {
+    console.error('上传失败:', error)
+    option.onError(error)
+    ElMessage.error('上传失败')
+  }
+}
+
+const handleRemovePhoto = (file: any) => {
+  const url = file.url
+  const index = form.photos.indexOf(url)
+  if (index !== -1) {
+    form.photos.splice(index, 1)
+  }
+}
+
+// 删除商品
+const handleDelete = async (row: ProductVO) => {
+  try {
+    await ElMessageBox.confirm(
+      `确认删除商品「${row.name}」吗？删除后将不可在列表中看到。`,
+      '删除确认',
+      {
+        confirmButtonText: '删除',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+    await deleteProduct(row.id)
+    ElMessage.success('删除成功')
+    // 删除后回到当前页刷新即可
+    fetchData()
+  } catch (error: any) {
+    // 用户取消
+    if (error === 'cancel' || error === 'close') return
+    console.error('删除失败:', error)
+    ElMessage.error('删除失败：' + (error.response?.data?.message || error.message))
+  }
+}
+
+// 处理提交
+const handleSubmit = async () => {
   if (!formRef.value) return
   
   try {
-    // 验证表单
     await formRef.value.validate()
     
-    // 调用更新 API
-    await updateProduct(form.id, form)
+    if (isEdit.value) {
+      await updateProduct(form.id, form)
+      ElMessage.success('更新成功')
+    } else {
+      // 过滤未选择的属性
+      const submitData: CreateProductDTO = {
+        ...form,
+        spuAttributes: form.spuAttributes.filter((a: any) => a.attributeId && a.attributeValueId),
+        skuAttributes: form.skuAttributes.filter((a: any) => a.attributeId && a.attributeValueId)
+      }
+      await createProduct(submitData)
+      ElMessage.success('新增成功')
+    }
     
-    // 更新成功
-    ElMessage.success('更新成功')
     dialogVisible.value = false
-    
-    // 刷新数据
     fetchData()
   } catch (error: any) {
-    // 处理表单验证错误
-    if (error.name === 'Error') {
-      // 处理 API 错误
-      if (error.response?.status === 409) {
-        ElMessageBox.alert('版本冲突，数据已被其他用户修改，请刷新页面后重试', '更新失败', {
-          confirmButtonText: '确定',
-          type: 'error'
-        })
-      } else if (error.response?.status === 404) {
-        ElMessage.error('商品不存在')
-      } else {
-        ElMessage.error('更新失败：' + (error.response?.data?.message || error.message))
-      }
+    console.error('提交失败:', error)
+    if (error.response?.status === 409) {
+      ElMessageBox.alert('数据冲突，请刷新后重试', '提交失败', { type: 'error' })
+    } else {
+      ElMessage.error('提交失败：' + (error.response?.data?.message || error.message))
     }
   }
 }
@@ -496,5 +691,8 @@ onMounted(() => {
   display: inline-block;
   vertical-align: middle;
   margin-bottom: 10px;
+}
+.no-image {
+  background-color: #f5f7fa;
 }
 </style>

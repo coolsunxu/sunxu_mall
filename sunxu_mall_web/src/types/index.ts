@@ -207,3 +207,68 @@ export interface ProductQueryDTO {
   brandId?: number
   productGroupId?: number
 }
+
+// 文件上传响应 - 对应后端 FileDTO
+export interface FileDTO {
+  originalName: string
+  fileName: string
+  path: string
+  downloadUrl: string
+  type: string
+  size: number
+}
+
+// 分类树节点
+export interface CategoryTree {
+  id: number
+  name: string
+  parentId: number
+  children: CategoryTree[]
+}
+
+// 品牌
+export interface Brand {
+  id: number
+  name: string
+}
+
+// 单位
+export interface Unit {
+  id: number
+  name: string
+}
+
+// 属性及属性值
+export interface AttributeValue {
+  id: number
+  attributeId: number
+  value: string
+}
+
+export interface AttributeWithValues {
+  id: number
+  name: string
+  values: AttributeValue[]
+}
+
+// 新增商品请求属性
+export interface CreateProductAttributeDTO {
+  attributeId: number
+  attributeValueId: number
+}
+
+// 新增商品请求 - 对应后端 CreateProductDTO
+export interface CreateProductDTO {
+  categoryId: number
+  brandId: number
+  unitId: number
+  name: string
+  model?: string
+  price: number
+  quantity: number
+  coverUrl?: string
+  detail?: string
+  spuAttributes?: CreateProductAttributeDTO[]
+  skuAttributes?: CreateProductAttributeDTO[]
+  photos?: string[]
+}

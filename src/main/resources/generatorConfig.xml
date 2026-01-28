@@ -483,64 +483,654 @@
 <!--        </table>-->
 <!--    </context>-->
 
-    <context id="CommonPhoto"  targetRuntime="MyBatis3">
-        <!-- 实体类生成序列化属性-->
-        <plugin type="org.mybatis.generator.plugins.SerializablePlugin" />
-        <!-- 实体类重写HashCode()和equals()-->
-        <plugin type="org.mybatis.generator.plugins.EqualsHashCodePlugin" />
-        <!-- 实体类重写toString() -->
-        <plugin type="org.mybatis.generator.plugins.ToStringPlugin" />
+<!--    <context id="CommonPhoto"  targetRuntime="MyBatis3">-->
+<!--        &lt;!&ndash; 实体类生成序列化属性&ndash;&gt;-->
+<!--        <plugin type="org.mybatis.generator.plugins.SerializablePlugin" />-->
+<!--        &lt;!&ndash; 实体类重写HashCode()和equals()&ndash;&gt;-->
+<!--        <plugin type="org.mybatis.generator.plugins.EqualsHashCodePlugin" />-->
+<!--        &lt;!&ndash; 实体类重写toString() &ndash;&gt;-->
+<!--        <plugin type="org.mybatis.generator.plugins.ToStringPlugin" />-->
 
-        <commentGenerator>
-            <!-- 是否去除自动生成的注释 -->
-            <property name="suppressAllComments" value="false"/>
-            <!-- 生成注释是否带时间戳-->
-            <property name="suppressDate" value="true"/>
-            <!-- 生成的Java文件的编码格式 -->
-            <property name="javaFileEncoding" value="utf-8"/>
-            <!-- 格式化java代码-->
-            <property name="javaFormatter" value="org.mybatis.generator.api.dom.DefaultJavaFormatter" />
-            <!-- 格式化XML代码-->
-            <property name="xmlFormatter" value="org.mybatis.generator.api.dom.DefaultXmlFormatter" />
-        </commentGenerator>
+<!--        <commentGenerator>-->
+<!--            &lt;!&ndash; 是否去除自动生成的注释 &ndash;&gt;-->
+<!--            <property name="suppressAllComments" value="false"/>-->
+<!--            &lt;!&ndash; 生成注释是否带时间戳&ndash;&gt;-->
+<!--            <property name="suppressDate" value="true"/>-->
+<!--            &lt;!&ndash; 生成的Java文件的编码格式 &ndash;&gt;-->
+<!--            <property name="javaFileEncoding" value="utf-8"/>-->
+<!--            &lt;!&ndash; 格式化java代码&ndash;&gt;-->
+<!--            <property name="javaFormatter" value="org.mybatis.generator.api.dom.DefaultJavaFormatter" />-->
+<!--            &lt;!&ndash; 格式化XML代码&ndash;&gt;-->
+<!--            <property name="xmlFormatter" value="org.mybatis.generator.api.dom.DefaultXmlFormatter" />-->
+<!--        </commentGenerator>-->
 
-        <!-- 数据库连接驱动类,URL，用户名、密码 -->
-        <jdbcConnection driverClass="com.mysql.cj.jdbc.Driver"
-                        connectionURL="jdbc:mysql://127.0.0.1:3306/mall?useUnicode=true&amp;serverTimezone=Asia/Shanghai&amp;characterEncoding=UTF-8&amp;useSSL=false"
-                        userId="root" password="123456">
-            <property name="nullCatalogMeansCurrent" value="true"/>
-        </jdbcConnection>
+<!--        &lt;!&ndash; 数据库连接驱动类,URL，用户名、密码 &ndash;&gt;-->
+<!--        <jdbcConnection driverClass="com.mysql.cj.jdbc.Driver"-->
+<!--                        connectionURL="jdbc:mysql://127.0.0.1:3306/mall?useUnicode=true&amp;serverTimezone=Asia/Shanghai&amp;characterEncoding=UTF-8&amp;useSSL=false"-->
+<!--                        userId="root" password="123456">-->
+<!--            <property name="nullCatalogMeansCurrent" value="true"/>-->
+<!--        </jdbcConnection>-->
 
-        <!-- java类型处理器：处理DB中的类型到Java中的类型 -->
-        <javaTypeResolver type="org.mybatis.generator.internal.types.JavaTypeResolverDefaultImpl">
-            <!-- 是否有效识别DB中的BigDecimal类型 -->
-            <property name="forceBigDecimals" value="true"/>
-            <!-- 开启 Java 8 时间类型支持 (JSR-310) -->
-            <property name="useJSR310Types" value="true"/>
-        </javaTypeResolver>
+<!--        &lt;!&ndash; java类型处理器：处理DB中的类型到Java中的类型 &ndash;&gt;-->
+<!--        <javaTypeResolver type="org.mybatis.generator.internal.types.JavaTypeResolverDefaultImpl">-->
+<!--            &lt;!&ndash; 是否有效识别DB中的BigDecimal类型 &ndash;&gt;-->
+<!--            <property name="forceBigDecimals" value="true"/>-->
+<!--            &lt;!&ndash; 开启 Java 8 时间类型支持 (JSR-310) &ndash;&gt;-->
+<!--            <property name="useJSR310Types" value="true"/>-->
+<!--        </javaTypeResolver>-->
 
-        <!-- 生成sys_role表的Domain模型：包名(targetPackage)、位置(targetProject) -->
-        <javaModelGenerator targetPackage="com.example.sunxu_mall.entity.mall" targetProject=".\src\main\java">
-            <!-- 在targetPackage的基础上，根据数据库的schema再生成一层package，最终生成的类放在这个package下，默认为false -->
-            <property name="enableSubPackages" value="true"/>
-            <!-- 设置是否在getter方法中，对String类型字段调用trim()方法-->
-            <property name="trimStrings" value="true"/>
-        </javaModelGenerator>
+<!--        &lt;!&ndash; 生成sys_role表的Domain模型：包名(targetPackage)、位置(targetProject) &ndash;&gt;-->
+<!--        <javaModelGenerator targetPackage="com.example.sunxu_mall.entity.mall" targetProject=".\src\main\java">-->
+<!--            &lt;!&ndash; 在targetPackage的基础上，根据数据库的schema再生成一层package，最终生成的类放在这个package下，默认为false &ndash;&gt;-->
+<!--            <property name="enableSubPackages" value="true"/>-->
+<!--            &lt;!&ndash; 设置是否在getter方法中，对String类型字段调用trim()方法&ndash;&gt;-->
+<!--            <property name="trimStrings" value="true"/>-->
+<!--        </javaModelGenerator>-->
 
-        <!-- 生成sys_role表的xml映射文件：包名(targetPackage)、位置(targetProject) -->
-        <sqlMapGenerator targetPackage="com.example.sunxu_mall.mapper.mall" targetProject=".\src\main\resources">
-            <property name="enableSubPackages" value="true"/>
-        </sqlMapGenerator>
+<!--        &lt;!&ndash; 生成sys_role表的xml映射文件：包名(targetPackage)、位置(targetProject) &ndash;&gt;-->
+<!--        <sqlMapGenerator targetPackage="com.example.sunxu_mall.mapper.mall" targetProject=".\src\main\resources">-->
+<!--            <property name="enableSubPackages" value="true"/>-->
+<!--        </sqlMapGenerator>-->
 
-        <!-- 生成sys_role表的DAO接口：包名(targetPackage)、位置(targetProject) -->
-        <javaClientGenerator type="XMLMAPPER" targetPackage="com.example.sunxu_mall.mapper.mall" targetProject=".\src\main\java">
-            <property name="enableSubPackages" value="true"/>
-        </javaClientGenerator>
+<!--        &lt;!&ndash; 生成sys_role表的DAO接口：包名(targetPackage)、位置(targetProject) &ndash;&gt;-->
+<!--        <javaClientGenerator type="XMLMAPPER" targetPackage="com.example.sunxu_mall.mapper.mall" targetProject=".\src\main\java">-->
+<!--            <property name="enableSubPackages" value="true"/>-->
+<!--        </javaClientGenerator>-->
 
-        <!-- 要生成的表：common_photo -->
-        <table tableName="common_photo" domainObjectName="CommonPhotoEntity">
-        </table>
-    </context>
+<!--        &lt;!&ndash; 要生成的表：common_photo &ndash;&gt;-->
+<!--        <table tableName="common_photo" domainObjectName="CommonPhotoEntity">-->
+<!--        </table>-->
+<!--    </context>-->
+
+<!--    <context id="mall_category"  targetRuntime="MyBatis3">-->
+<!--        &lt;!&ndash; 实体类生成序列化属性&ndash;&gt;-->
+<!--        <plugin type="org.mybatis.generator.plugins.SerializablePlugin" />-->
+<!--        &lt;!&ndash; 实体类重写HashCode()和equals()&ndash;&gt;-->
+<!--        <plugin type="org.mybatis.generator.plugins.EqualsHashCodePlugin" />-->
+<!--        &lt;!&ndash; 实体类重写toString() &ndash;&gt;-->
+<!--        <plugin type="org.mybatis.generator.plugins.ToStringPlugin" />-->
+
+<!--        <commentGenerator>-->
+<!--            &lt;!&ndash; 是否去除自动生成的注释 &ndash;&gt;-->
+<!--            <property name="suppressAllComments" value="false"/>-->
+<!--            &lt;!&ndash; 生成注释是否带时间戳&ndash;&gt;-->
+<!--            <property name="suppressDate" value="true"/>-->
+<!--            &lt;!&ndash; 生成的Java文件的编码格式 &ndash;&gt;-->
+<!--            <property name="javaFileEncoding" value="utf-8"/>-->
+<!--            &lt;!&ndash; 格式化java代码&ndash;&gt;-->
+<!--            <property name="javaFormatter" value="org.mybatis.generator.api.dom.DefaultJavaFormatter" />-->
+<!--            &lt;!&ndash; 格式化XML代码&ndash;&gt;-->
+<!--            <property name="xmlFormatter" value="org.mybatis.generator.api.dom.DefaultXmlFormatter" />-->
+<!--        </commentGenerator>-->
+
+<!--        &lt;!&ndash; 数据库连接驱动类,URL，用户名、密码 &ndash;&gt;-->
+<!--        <jdbcConnection driverClass="com.mysql.cj.jdbc.Driver"-->
+<!--                        connectionURL="jdbc:mysql://127.0.0.1:3306/mall?useUnicode=true&amp;serverTimezone=Asia/Shanghai&amp;characterEncoding=UTF-8&amp;useSSL=false"-->
+<!--                        userId="root" password="123456">-->
+<!--            <property name="nullCatalogMeansCurrent" value="true"/>-->
+<!--        </jdbcConnection>-->
+
+<!--        &lt;!&ndash; java类型处理器：处理DB中的类型到Java中的类型 &ndash;&gt;-->
+<!--        <javaTypeResolver type="org.mybatis.generator.internal.types.JavaTypeResolverDefaultImpl">-->
+<!--            &lt;!&ndash; 是否有效识别DB中的BigDecimal类型 &ndash;&gt;-->
+<!--            <property name="forceBigDecimals" value="true"/>-->
+<!--            &lt;!&ndash; 开启 Java 8 时间类型支持 (JSR-310) &ndash;&gt;-->
+<!--            <property name="useJSR310Types" value="true"/>-->
+<!--        </javaTypeResolver>-->
+
+<!--        &lt;!&ndash; 生成sys_role表的Domain模型：包名(targetPackage)、位置(targetProject) &ndash;&gt;-->
+<!--        <javaModelGenerator targetPackage="com.example.sunxu_mall.entity.mall" targetProject=".\src\main\java">-->
+<!--            &lt;!&ndash; 在targetPackage的基础上，根据数据库的schema再生成一层package，最终生成的类放在这个package下，默认为false &ndash;&gt;-->
+<!--            <property name="enableSubPackages" value="true"/>-->
+<!--            &lt;!&ndash; 设置是否在getter方法中，对String类型字段调用trim()方法&ndash;&gt;-->
+<!--            <property name="trimStrings" value="true"/>-->
+<!--        </javaModelGenerator>-->
+
+<!--        &lt;!&ndash; 生成sys_role表的xml映射文件：包名(targetPackage)、位置(targetProject) &ndash;&gt;-->
+<!--        <sqlMapGenerator targetPackage="com.example.sunxu_mall.mapper.mall" targetProject=".\src\main\resources">-->
+<!--            <property name="enableSubPackages" value="true"/>-->
+<!--        </sqlMapGenerator>-->
+
+<!--        &lt;!&ndash; 生成sys_role表的DAO接口：包名(targetPackage)、位置(targetProject) &ndash;&gt;-->
+<!--        <javaClientGenerator type="XMLMAPPER" targetPackage="com.example.sunxu_mall.mapper.mall" targetProject=".\src\main\java">-->
+<!--            <property name="enableSubPackages" value="true"/>-->
+<!--        </javaClientGenerator>-->
+
+<!--        &lt;!&ndash; 要生成的表：mall_category &ndash;&gt;-->
+<!--        <table tableName="mall_category" domainObjectName="MallCategoryEntity">-->
+<!--        </table>-->
+<!--    </context>-->
+
+<!--    <context id="mall_attribute"  targetRuntime="MyBatis3">-->
+<!--        &lt;!&ndash; 实体类生成序列化属性&ndash;&gt;-->
+<!--        <plugin type="org.mybatis.generator.plugins.SerializablePlugin" />-->
+<!--        &lt;!&ndash; 实体类重写HashCode()和equals()&ndash;&gt;-->
+<!--        <plugin type="org.mybatis.generator.plugins.EqualsHashCodePlugin" />-->
+<!--        &lt;!&ndash; 实体类重写toString() &ndash;&gt;-->
+<!--        <plugin type="org.mybatis.generator.plugins.ToStringPlugin" />-->
+
+<!--        <commentGenerator>-->
+<!--            &lt;!&ndash; 是否去除自动生成的注释 &ndash;&gt;-->
+<!--            <property name="suppressAllComments" value="false"/>-->
+<!--            &lt;!&ndash; 生成注释是否带时间戳&ndash;&gt;-->
+<!--            <property name="suppressDate" value="true"/>-->
+<!--            &lt;!&ndash; 生成的Java文件的编码格式 &ndash;&gt;-->
+<!--            <property name="javaFileEncoding" value="utf-8"/>-->
+<!--            &lt;!&ndash; 格式化java代码&ndash;&gt;-->
+<!--            <property name="javaFormatter" value="org.mybatis.generator.api.dom.DefaultJavaFormatter" />-->
+<!--            &lt;!&ndash; 格式化XML代码&ndash;&gt;-->
+<!--            <property name="xmlFormatter" value="org.mybatis.generator.api.dom.DefaultXmlFormatter" />-->
+<!--        </commentGenerator>-->
+
+<!--        &lt;!&ndash; 数据库连接驱动类,URL，用户名、密码 &ndash;&gt;-->
+<!--        <jdbcConnection driverClass="com.mysql.cj.jdbc.Driver"-->
+<!--                        connectionURL="jdbc:mysql://127.0.0.1:3306/mall?useUnicode=true&amp;serverTimezone=Asia/Shanghai&amp;characterEncoding=UTF-8&amp;useSSL=false"-->
+<!--                        userId="root" password="123456">-->
+<!--            <property name="nullCatalogMeansCurrent" value="true"/>-->
+<!--        </jdbcConnection>-->
+
+<!--        &lt;!&ndash; java类型处理器：处理DB中的类型到Java中的类型 &ndash;&gt;-->
+<!--        <javaTypeResolver type="org.mybatis.generator.internal.types.JavaTypeResolverDefaultImpl">-->
+<!--            &lt;!&ndash; 是否有效识别DB中的BigDecimal类型 &ndash;&gt;-->
+<!--            <property name="forceBigDecimals" value="true"/>-->
+<!--            &lt;!&ndash; 开启 Java 8 时间类型支持 (JSR-310) &ndash;&gt;-->
+<!--            <property name="useJSR310Types" value="true"/>-->
+<!--        </javaTypeResolver>-->
+
+<!--        &lt;!&ndash; 生成sys_role表的Domain模型：包名(targetPackage)、位置(targetProject) &ndash;&gt;-->
+<!--        <javaModelGenerator targetPackage="com.example.sunxu_mall.entity.mall" targetProject=".\src\main\java">-->
+<!--            &lt;!&ndash; 在targetPackage的基础上，根据数据库的schema再生成一层package，最终生成的类放在这个package下，默认为false &ndash;&gt;-->
+<!--            <property name="enableSubPackages" value="true"/>-->
+<!--            &lt;!&ndash; 设置是否在getter方法中，对String类型字段调用trim()方法&ndash;&gt;-->
+<!--            <property name="trimStrings" value="true"/>-->
+<!--        </javaModelGenerator>-->
+
+<!--        &lt;!&ndash; 生成sys_role表的xml映射文件：包名(targetPackage)、位置(targetProject) &ndash;&gt;-->
+<!--        <sqlMapGenerator targetPackage="com.example.sunxu_mall.mapper.mall" targetProject=".\src\main\resources">-->
+<!--            <property name="enableSubPackages" value="true"/>-->
+<!--        </sqlMapGenerator>-->
+
+<!--        &lt;!&ndash; 生成sys_role表的DAO接口：包名(targetPackage)、位置(targetProject) &ndash;&gt;-->
+<!--        <javaClientGenerator type="XMLMAPPER" targetPackage="com.example.sunxu_mall.mapper.mall" targetProject=".\src\main\java">-->
+<!--            <property name="enableSubPackages" value="true"/>-->
+<!--        </javaClientGenerator>-->
+
+<!--        &lt;!&ndash; 要生成的表：mall_attribute &ndash;&gt;-->
+<!--        <table tableName="mall_attribute" domainObjectName="MallAttributeEntity">-->
+<!--        </table>-->
+<!--    </context>-->
+
+<!--    <context id="mall_attribute_value"  targetRuntime="MyBatis3">-->
+<!--        &lt;!&ndash; 实体类生成序列化属性&ndash;&gt;-->
+<!--        <plugin type="org.mybatis.generator.plugins.SerializablePlugin" />-->
+<!--        &lt;!&ndash; 实体类重写HashCode()和equals()&ndash;&gt;-->
+<!--        <plugin type="org.mybatis.generator.plugins.EqualsHashCodePlugin" />-->
+<!--        &lt;!&ndash; 实体类重写toString() &ndash;&gt;-->
+<!--        <plugin type="org.mybatis.generator.plugins.ToStringPlugin" />-->
+
+<!--        <commentGenerator>-->
+<!--            &lt;!&ndash; 是否去除自动生成的注释 &ndash;&gt;-->
+<!--            <property name="suppressAllComments" value="false"/>-->
+<!--            &lt;!&ndash; 生成注释是否带时间戳&ndash;&gt;-->
+<!--            <property name="suppressDate" value="true"/>-->
+<!--            &lt;!&ndash; 生成的Java文件的编码格式 &ndash;&gt;-->
+<!--            <property name="javaFileEncoding" value="utf-8"/>-->
+<!--            &lt;!&ndash; 格式化java代码&ndash;&gt;-->
+<!--            <property name="javaFormatter" value="org.mybatis.generator.api.dom.DefaultJavaFormatter" />-->
+<!--            &lt;!&ndash; 格式化XML代码&ndash;&gt;-->
+<!--            <property name="xmlFormatter" value="org.mybatis.generator.api.dom.DefaultXmlFormatter" />-->
+<!--        </commentGenerator>-->
+
+<!--        &lt;!&ndash; 数据库连接驱动类,URL，用户名、密码 &ndash;&gt;-->
+<!--        <jdbcConnection driverClass="com.mysql.cj.jdbc.Driver"-->
+<!--                        connectionURL="jdbc:mysql://127.0.0.1:3306/mall?useUnicode=true&amp;serverTimezone=Asia/Shanghai&amp;characterEncoding=UTF-8&amp;useSSL=false"-->
+<!--                        userId="root" password="123456">-->
+<!--            <property name="nullCatalogMeansCurrent" value="true"/>-->
+<!--        </jdbcConnection>-->
+
+<!--        &lt;!&ndash; java类型处理器：处理DB中的类型到Java中的类型 &ndash;&gt;-->
+<!--        <javaTypeResolver type="org.mybatis.generator.internal.types.JavaTypeResolverDefaultImpl">-->
+<!--            &lt;!&ndash; 是否有效识别DB中的BigDecimal类型 &ndash;&gt;-->
+<!--            <property name="forceBigDecimals" value="true"/>-->
+<!--            &lt;!&ndash; 开启 Java 8 时间类型支持 (JSR-310) &ndash;&gt;-->
+<!--            <property name="useJSR310Types" value="true"/>-->
+<!--        </javaTypeResolver>-->
+
+<!--        &lt;!&ndash; 生成sys_role表的Domain模型：包名(targetPackage)、位置(targetProject) &ndash;&gt;-->
+<!--        <javaModelGenerator targetPackage="com.example.sunxu_mall.entity.mall" targetProject=".\src\main\java">-->
+<!--            &lt;!&ndash; 在targetPackage的基础上，根据数据库的schema再生成一层package，最终生成的类放在这个package下，默认为false &ndash;&gt;-->
+<!--            <property name="enableSubPackages" value="true"/>-->
+<!--            &lt;!&ndash; 设置是否在getter方法中，对String类型字段调用trim()方法&ndash;&gt;-->
+<!--            <property name="trimStrings" value="true"/>-->
+<!--        </javaModelGenerator>-->
+
+<!--        &lt;!&ndash; 生成sys_role表的xml映射文件：包名(targetPackage)、位置(targetProject) &ndash;&gt;-->
+<!--        <sqlMapGenerator targetPackage="com.example.sunxu_mall.mapper.mall" targetProject=".\src\main\resources">-->
+<!--            <property name="enableSubPackages" value="true"/>-->
+<!--        </sqlMapGenerator>-->
+
+<!--        &lt;!&ndash; 生成sys_role表的DAO接口：包名(targetPackage)、位置(targetProject) &ndash;&gt;-->
+<!--        <javaClientGenerator type="XMLMAPPER" targetPackage="com.example.sunxu_mall.mapper.mall" targetProject=".\src\main\java">-->
+<!--            <property name="enableSubPackages" value="true"/>-->
+<!--        </javaClientGenerator>-->
+
+<!--        &lt;!&ndash; 要生成的表：common_photo &ndash;&gt;-->
+<!--        <table tableName="mall_attribute_value" domainObjectName="MallAttributeValueEntity">-->
+<!--        </table>-->
+<!--    </context>-->
+
+<!--    <context id="mall_brand"  targetRuntime="MyBatis3">-->
+<!--        &lt;!&ndash; 实体类生成序列化属性&ndash;&gt;-->
+<!--        <plugin type="org.mybatis.generator.plugins.SerializablePlugin" />-->
+<!--        &lt;!&ndash; 实体类重写HashCode()和equals()&ndash;&gt;-->
+<!--        <plugin type="org.mybatis.generator.plugins.EqualsHashCodePlugin" />-->
+<!--        &lt;!&ndash; 实体类重写toString() &ndash;&gt;-->
+<!--        <plugin type="org.mybatis.generator.plugins.ToStringPlugin" />-->
+
+<!--        <commentGenerator>-->
+<!--            &lt;!&ndash; 是否去除自动生成的注释 &ndash;&gt;-->
+<!--            <property name="suppressAllComments" value="false"/>-->
+<!--            &lt;!&ndash; 生成注释是否带时间戳&ndash;&gt;-->
+<!--            <property name="suppressDate" value="true"/>-->
+<!--            &lt;!&ndash; 生成的Java文件的编码格式 &ndash;&gt;-->
+<!--            <property name="javaFileEncoding" value="utf-8"/>-->
+<!--            &lt;!&ndash; 格式化java代码&ndash;&gt;-->
+<!--            <property name="javaFormatter" value="org.mybatis.generator.api.dom.DefaultJavaFormatter" />-->
+<!--            &lt;!&ndash; 格式化XML代码&ndash;&gt;-->
+<!--            <property name="xmlFormatter" value="org.mybatis.generator.api.dom.DefaultXmlFormatter" />-->
+<!--        </commentGenerator>-->
+
+<!--        &lt;!&ndash; 数据库连接驱动类,URL，用户名、密码 &ndash;&gt;-->
+<!--        <jdbcConnection driverClass="com.mysql.cj.jdbc.Driver"-->
+<!--                        connectionURL="jdbc:mysql://127.0.0.1:3306/mall?useUnicode=true&amp;serverTimezone=Asia/Shanghai&amp;characterEncoding=UTF-8&amp;useSSL=false"-->
+<!--                        userId="root" password="123456">-->
+<!--            <property name="nullCatalogMeansCurrent" value="true"/>-->
+<!--        </jdbcConnection>-->
+
+<!--        &lt;!&ndash; java类型处理器：处理DB中的类型到Java中的类型 &ndash;&gt;-->
+<!--        <javaTypeResolver type="org.mybatis.generator.internal.types.JavaTypeResolverDefaultImpl">-->
+<!--            &lt;!&ndash; 是否有效识别DB中的BigDecimal类型 &ndash;&gt;-->
+<!--            <property name="forceBigDecimals" value="true"/>-->
+<!--            &lt;!&ndash; 开启 Java 8 时间类型支持 (JSR-310) &ndash;&gt;-->
+<!--            <property name="useJSR310Types" value="true"/>-->
+<!--        </javaTypeResolver>-->
+
+<!--        &lt;!&ndash; 生成sys_role表的Domain模型：包名(targetPackage)、位置(targetProject) &ndash;&gt;-->
+<!--        <javaModelGenerator targetPackage="com.example.sunxu_mall.entity.mall" targetProject=".\src\main\java">-->
+<!--            &lt;!&ndash; 在targetPackage的基础上，根据数据库的schema再生成一层package，最终生成的类放在这个package下，默认为false &ndash;&gt;-->
+<!--            <property name="enableSubPackages" value="true"/>-->
+<!--            &lt;!&ndash; 设置是否在getter方法中，对String类型字段调用trim()方法&ndash;&gt;-->
+<!--            <property name="trimStrings" value="true"/>-->
+<!--        </javaModelGenerator>-->
+
+<!--        &lt;!&ndash; 生成sys_role表的xml映射文件：包名(targetPackage)、位置(targetProject) &ndash;&gt;-->
+<!--        <sqlMapGenerator targetPackage="com.example.sunxu_mall.mapper.mall" targetProject=".\src\main\resources">-->
+<!--            <property name="enableSubPackages" value="true"/>-->
+<!--        </sqlMapGenerator>-->
+
+<!--        &lt;!&ndash; 生成sys_role表的DAO接口：包名(targetPackage)、位置(targetProject) &ndash;&gt;-->
+<!--        <javaClientGenerator type="XMLMAPPER" targetPackage="com.example.sunxu_mall.mapper.mall" targetProject=".\src\main\java">-->
+<!--            <property name="enableSubPackages" value="true"/>-->
+<!--        </javaClientGenerator>-->
+
+<!--        &lt;!&ndash; 要生成的表：common_photo &ndash;&gt;-->
+<!--        <table tableName="mall_brand" domainObjectName="MallBrandEntity">-->
+<!--        </table>-->
+<!--    </context>-->
+
+<!--    <context id="mall_product_comment"  targetRuntime="MyBatis3">-->
+<!--        &lt;!&ndash; 实体类生成序列化属性&ndash;&gt;-->
+<!--        <plugin type="org.mybatis.generator.plugins.SerializablePlugin" />-->
+<!--        &lt;!&ndash; 实体类重写HashCode()和equals()&ndash;&gt;-->
+<!--        <plugin type="org.mybatis.generator.plugins.EqualsHashCodePlugin" />-->
+<!--        &lt;!&ndash; 实体类重写toString() &ndash;&gt;-->
+<!--        <plugin type="org.mybatis.generator.plugins.ToStringPlugin" />-->
+
+<!--        <commentGenerator>-->
+<!--            &lt;!&ndash; 是否去除自动生成的注释 &ndash;&gt;-->
+<!--            <property name="suppressAllComments" value="false"/>-->
+<!--            &lt;!&ndash; 生成注释是否带时间戳&ndash;&gt;-->
+<!--            <property name="suppressDate" value="true"/>-->
+<!--            &lt;!&ndash; 生成的Java文件的编码格式 &ndash;&gt;-->
+<!--            <property name="javaFileEncoding" value="utf-8"/>-->
+<!--            &lt;!&ndash; 格式化java代码&ndash;&gt;-->
+<!--            <property name="javaFormatter" value="org.mybatis.generator.api.dom.DefaultJavaFormatter" />-->
+<!--            &lt;!&ndash; 格式化XML代码&ndash;&gt;-->
+<!--            <property name="xmlFormatter" value="org.mybatis.generator.api.dom.DefaultXmlFormatter" />-->
+<!--        </commentGenerator>-->
+
+<!--        &lt;!&ndash; 数据库连接驱动类,URL，用户名、密码 &ndash;&gt;-->
+<!--        <jdbcConnection driverClass="com.mysql.cj.jdbc.Driver"-->
+<!--                        connectionURL="jdbc:mysql://127.0.0.1:3306/mall?useUnicode=true&amp;serverTimezone=Asia/Shanghai&amp;characterEncoding=UTF-8&amp;useSSL=false"-->
+<!--                        userId="root" password="123456">-->
+<!--            <property name="nullCatalogMeansCurrent" value="true"/>-->
+<!--        </jdbcConnection>-->
+
+<!--        &lt;!&ndash; java类型处理器：处理DB中的类型到Java中的类型 &ndash;&gt;-->
+<!--        <javaTypeResolver type="org.mybatis.generator.internal.types.JavaTypeResolverDefaultImpl">-->
+<!--            &lt;!&ndash; 是否有效识别DB中的BigDecimal类型 &ndash;&gt;-->
+<!--            <property name="forceBigDecimals" value="true"/>-->
+<!--            &lt;!&ndash; 开启 Java 8 时间类型支持 (JSR-310) &ndash;&gt;-->
+<!--            <property name="useJSR310Types" value="true"/>-->
+<!--        </javaTypeResolver>-->
+
+<!--        &lt;!&ndash; 生成sys_role表的Domain模型：包名(targetPackage)、位置(targetProject) &ndash;&gt;-->
+<!--        <javaModelGenerator targetPackage="com.example.sunxu_mall.entity.mall" targetProject=".\src\main\java">-->
+<!--            &lt;!&ndash; 在targetPackage的基础上，根据数据库的schema再生成一层package，最终生成的类放在这个package下，默认为false &ndash;&gt;-->
+<!--            <property name="enableSubPackages" value="true"/>-->
+<!--            &lt;!&ndash; 设置是否在getter方法中，对String类型字段调用trim()方法&ndash;&gt;-->
+<!--            <property name="trimStrings" value="true"/>-->
+<!--        </javaModelGenerator>-->
+
+<!--        &lt;!&ndash; 生成sys_role表的xml映射文件：包名(targetPackage)、位置(targetProject) &ndash;&gt;-->
+<!--        <sqlMapGenerator targetPackage="com.example.sunxu_mall.mapper.mall" targetProject=".\src\main\resources">-->
+<!--            <property name="enableSubPackages" value="true"/>-->
+<!--        </sqlMapGenerator>-->
+
+<!--        &lt;!&ndash; 生成sys_role表的DAO接口：包名(targetPackage)、位置(targetProject) &ndash;&gt;-->
+<!--        <javaClientGenerator type="XMLMAPPER" targetPackage="com.example.sunxu_mall.mapper.mall" targetProject=".\src\main\java">-->
+<!--            <property name="enableSubPackages" value="true"/>-->
+<!--        </javaClientGenerator>-->
+
+<!--        &lt;!&ndash; 要生成的表：mall_product_comment &ndash;&gt;-->
+<!--        <table tableName="mall_product_comment" domainObjectName="MallProductCommentEntity">-->
+<!--        </table>-->
+<!--    </context>-->
+
+<!--    <context id="mall_product_detail"  targetRuntime="MyBatis3">-->
+<!--        &lt;!&ndash; 实体类生成序列化属性&ndash;&gt;-->
+<!--        <plugin type="org.mybatis.generator.plugins.SerializablePlugin" />-->
+<!--        &lt;!&ndash; 实体类重写HashCode()和equals()&ndash;&gt;-->
+<!--        <plugin type="org.mybatis.generator.plugins.EqualsHashCodePlugin" />-->
+<!--        &lt;!&ndash; 实体类重写toString() &ndash;&gt;-->
+<!--        <plugin type="org.mybatis.generator.plugins.ToStringPlugin" />-->
+
+<!--        <commentGenerator>-->
+<!--            &lt;!&ndash; 是否去除自动生成的注释 &ndash;&gt;-->
+<!--            <property name="suppressAllComments" value="false"/>-->
+<!--            &lt;!&ndash; 生成注释是否带时间戳&ndash;&gt;-->
+<!--            <property name="suppressDate" value="true"/>-->
+<!--            &lt;!&ndash; 生成的Java文件的编码格式 &ndash;&gt;-->
+<!--            <property name="javaFileEncoding" value="utf-8"/>-->
+<!--            &lt;!&ndash; 格式化java代码&ndash;&gt;-->
+<!--            <property name="javaFormatter" value="org.mybatis.generator.api.dom.DefaultJavaFormatter" />-->
+<!--            &lt;!&ndash; 格式化XML代码&ndash;&gt;-->
+<!--            <property name="xmlFormatter" value="org.mybatis.generator.api.dom.DefaultXmlFormatter" />-->
+<!--        </commentGenerator>-->
+
+<!--        &lt;!&ndash; 数据库连接驱动类,URL，用户名、密码 &ndash;&gt;-->
+<!--        <jdbcConnection driverClass="com.mysql.cj.jdbc.Driver"-->
+<!--                        connectionURL="jdbc:mysql://127.0.0.1:3306/mall?useUnicode=true&amp;serverTimezone=Asia/Shanghai&amp;characterEncoding=UTF-8&amp;useSSL=false"-->
+<!--                        userId="root" password="123456">-->
+<!--            <property name="nullCatalogMeansCurrent" value="true"/>-->
+<!--        </jdbcConnection>-->
+
+<!--        &lt;!&ndash; java类型处理器：处理DB中的类型到Java中的类型 &ndash;&gt;-->
+<!--        <javaTypeResolver type="org.mybatis.generator.internal.types.JavaTypeResolverDefaultImpl">-->
+<!--            &lt;!&ndash; 是否有效识别DB中的BigDecimal类型 &ndash;&gt;-->
+<!--            <property name="forceBigDecimals" value="true"/>-->
+<!--            &lt;!&ndash; 开启 Java 8 时间类型支持 (JSR-310) &ndash;&gt;-->
+<!--            <property name="useJSR310Types" value="true"/>-->
+<!--        </javaTypeResolver>-->
+
+<!--        &lt;!&ndash; 生成sys_role表的Domain模型：包名(targetPackage)、位置(targetProject) &ndash;&gt;-->
+<!--        <javaModelGenerator targetPackage="com.example.sunxu_mall.entity.mall" targetProject=".\src\main\java">-->
+<!--            &lt;!&ndash; 在targetPackage的基础上，根据数据库的schema再生成一层package，最终生成的类放在这个package下，默认为false &ndash;&gt;-->
+<!--            <property name="enableSubPackages" value="true"/>-->
+<!--            &lt;!&ndash; 设置是否在getter方法中，对String类型字段调用trim()方法&ndash;&gt;-->
+<!--            <property name="trimStrings" value="true"/>-->
+<!--        </javaModelGenerator>-->
+
+<!--        &lt;!&ndash; 生成sys_role表的xml映射文件：包名(targetPackage)、位置(targetProject) &ndash;&gt;-->
+<!--        <sqlMapGenerator targetPackage="com.example.sunxu_mall.mapper.mall" targetProject=".\src\main\resources">-->
+<!--            <property name="enableSubPackages" value="true"/>-->
+<!--        </sqlMapGenerator>-->
+
+<!--        &lt;!&ndash; 生成sys_role表的DAO接口：包名(targetPackage)、位置(targetProject) &ndash;&gt;-->
+<!--        <javaClientGenerator type="XMLMAPPER" targetPackage="com.example.sunxu_mall.mapper.mall" targetProject=".\src\main\java">-->
+<!--            <property name="enableSubPackages" value="true"/>-->
+<!--        </javaClientGenerator>-->
+
+<!--        &lt;!&ndash; 要生成的表：mall_product_detail &ndash;&gt;-->
+<!--        <table tableName="mall_product_detail" domainObjectName="MallProductDetailEntity">-->
+<!--        </table>-->
+<!--    </context>-->
+
+<!--    <context id="mall_product_favorites"  targetRuntime="MyBatis3">-->
+<!--        &lt;!&ndash; 实体类生成序列化属性&ndash;&gt;-->
+<!--        <plugin type="org.mybatis.generator.plugins.SerializablePlugin" />-->
+<!--        &lt;!&ndash; 实体类重写HashCode()和equals()&ndash;&gt;-->
+<!--        <plugin type="org.mybatis.generator.plugins.EqualsHashCodePlugin" />-->
+<!--        &lt;!&ndash; 实体类重写toString() &ndash;&gt;-->
+<!--        <plugin type="org.mybatis.generator.plugins.ToStringPlugin" />-->
+
+<!--        <commentGenerator>-->
+<!--            &lt;!&ndash; 是否去除自动生成的注释 &ndash;&gt;-->
+<!--            <property name="suppressAllComments" value="false"/>-->
+<!--            &lt;!&ndash; 生成注释是否带时间戳&ndash;&gt;-->
+<!--            <property name="suppressDate" value="true"/>-->
+<!--            &lt;!&ndash; 生成的Java文件的编码格式 &ndash;&gt;-->
+<!--            <property name="javaFileEncoding" value="utf-8"/>-->
+<!--            &lt;!&ndash; 格式化java代码&ndash;&gt;-->
+<!--            <property name="javaFormatter" value="org.mybatis.generator.api.dom.DefaultJavaFormatter" />-->
+<!--            &lt;!&ndash; 格式化XML代码&ndash;&gt;-->
+<!--            <property name="xmlFormatter" value="org.mybatis.generator.api.dom.DefaultXmlFormatter" />-->
+<!--        </commentGenerator>-->
+
+<!--        &lt;!&ndash; 数据库连接驱动类,URL，用户名、密码 &ndash;&gt;-->
+<!--        <jdbcConnection driverClass="com.mysql.cj.jdbc.Driver"-->
+<!--                        connectionURL="jdbc:mysql://127.0.0.1:3306/mall?useUnicode=true&amp;serverTimezone=Asia/Shanghai&amp;characterEncoding=UTF-8&amp;useSSL=false"-->
+<!--                        userId="root" password="123456">-->
+<!--            <property name="nullCatalogMeansCurrent" value="true"/>-->
+<!--        </jdbcConnection>-->
+
+<!--        &lt;!&ndash; java类型处理器：处理DB中的类型到Java中的类型 &ndash;&gt;-->
+<!--        <javaTypeResolver type="org.mybatis.generator.internal.types.JavaTypeResolverDefaultImpl">-->
+<!--            &lt;!&ndash; 是否有效识别DB中的BigDecimal类型 &ndash;&gt;-->
+<!--            <property name="forceBigDecimals" value="true"/>-->
+<!--            &lt;!&ndash; 开启 Java 8 时间类型支持 (JSR-310) &ndash;&gt;-->
+<!--            <property name="useJSR310Types" value="true"/>-->
+<!--        </javaTypeResolver>-->
+
+<!--        &lt;!&ndash; 生成sys_role表的Domain模型：包名(targetPackage)、位置(targetProject) &ndash;&gt;-->
+<!--        <javaModelGenerator targetPackage="com.example.sunxu_mall.entity.mall" targetProject=".\src\main\java">-->
+<!--            &lt;!&ndash; 在targetPackage的基础上，根据数据库的schema再生成一层package，最终生成的类放在这个package下，默认为false &ndash;&gt;-->
+<!--            <property name="enableSubPackages" value="true"/>-->
+<!--            &lt;!&ndash; 设置是否在getter方法中，对String类型字段调用trim()方法&ndash;&gt;-->
+<!--            <property name="trimStrings" value="true"/>-->
+<!--        </javaModelGenerator>-->
+
+<!--        &lt;!&ndash; 生成sys_role表的xml映射文件：包名(targetPackage)、位置(targetProject) &ndash;&gt;-->
+<!--        <sqlMapGenerator targetPackage="com.example.sunxu_mall.mapper.mall" targetProject=".\src\main\resources">-->
+<!--            <property name="enableSubPackages" value="true"/>-->
+<!--        </sqlMapGenerator>-->
+
+<!--        &lt;!&ndash; 生成sys_role表的DAO接口：包名(targetPackage)、位置(targetProject) &ndash;&gt;-->
+<!--        <javaClientGenerator type="XMLMAPPER" targetPackage="com.example.sunxu_mall.mapper.mall" targetProject=".\src\main\java">-->
+<!--            <property name="enableSubPackages" value="true"/>-->
+<!--        </javaClientGenerator>-->
+
+<!--        &lt;!&ndash; 要生成的表：common_photo &ndash;&gt;-->
+<!--        <table tableName="mall_product_favorites" domainObjectName="MallProductFavoritesEntity">-->
+<!--        </table>-->
+<!--    </context>-->
+
+<!--    <context id="mall_product_group"  targetRuntime="MyBatis3">-->
+<!--        &lt;!&ndash; 实体类生成序列化属性&ndash;&gt;-->
+<!--        <plugin type="org.mybatis.generator.plugins.SerializablePlugin" />-->
+<!--        &lt;!&ndash; 实体类重写HashCode()和equals()&ndash;&gt;-->
+<!--        <plugin type="org.mybatis.generator.plugins.EqualsHashCodePlugin" />-->
+<!--        &lt;!&ndash; 实体类重写toString() &ndash;&gt;-->
+<!--        <plugin type="org.mybatis.generator.plugins.ToStringPlugin" />-->
+
+<!--        <commentGenerator>-->
+<!--            &lt;!&ndash; 是否去除自动生成的注释 &ndash;&gt;-->
+<!--            <property name="suppressAllComments" value="false"/>-->
+<!--            &lt;!&ndash; 生成注释是否带时间戳&ndash;&gt;-->
+<!--            <property name="suppressDate" value="true"/>-->
+<!--            &lt;!&ndash; 生成的Java文件的编码格式 &ndash;&gt;-->
+<!--            <property name="javaFileEncoding" value="utf-8"/>-->
+<!--            &lt;!&ndash; 格式化java代码&ndash;&gt;-->
+<!--            <property name="javaFormatter" value="org.mybatis.generator.api.dom.DefaultJavaFormatter" />-->
+<!--            &lt;!&ndash; 格式化XML代码&ndash;&gt;-->
+<!--            <property name="xmlFormatter" value="org.mybatis.generator.api.dom.DefaultXmlFormatter" />-->
+<!--        </commentGenerator>-->
+
+<!--        &lt;!&ndash; 数据库连接驱动类,URL，用户名、密码 &ndash;&gt;-->
+<!--        <jdbcConnection driverClass="com.mysql.cj.jdbc.Driver"-->
+<!--                        connectionURL="jdbc:mysql://127.0.0.1:3306/mall?useUnicode=true&amp;serverTimezone=Asia/Shanghai&amp;characterEncoding=UTF-8&amp;useSSL=false"-->
+<!--                        userId="root" password="123456">-->
+<!--            <property name="nullCatalogMeansCurrent" value="true"/>-->
+<!--        </jdbcConnection>-->
+
+<!--        &lt;!&ndash; java类型处理器：处理DB中的类型到Java中的类型 &ndash;&gt;-->
+<!--        <javaTypeResolver type="org.mybatis.generator.internal.types.JavaTypeResolverDefaultImpl">-->
+<!--            &lt;!&ndash; 是否有效识别DB中的BigDecimal类型 &ndash;&gt;-->
+<!--            <property name="forceBigDecimals" value="true"/>-->
+<!--            &lt;!&ndash; 开启 Java 8 时间类型支持 (JSR-310) &ndash;&gt;-->
+<!--            <property name="useJSR310Types" value="true"/>-->
+<!--        </javaTypeResolver>-->
+
+<!--        &lt;!&ndash; 生成sys_role表的Domain模型：包名(targetPackage)、位置(targetProject) &ndash;&gt;-->
+<!--        <javaModelGenerator targetPackage="com.example.sunxu_mall.entity.mall" targetProject=".\src\main\java">-->
+<!--            &lt;!&ndash; 在targetPackage的基础上，根据数据库的schema再生成一层package，最终生成的类放在这个package下，默认为false &ndash;&gt;-->
+<!--            <property name="enableSubPackages" value="true"/>-->
+<!--            &lt;!&ndash; 设置是否在getter方法中，对String类型字段调用trim()方法&ndash;&gt;-->
+<!--            <property name="trimStrings" value="true"/>-->
+<!--        </javaModelGenerator>-->
+
+<!--        &lt;!&ndash; 生成sys_role表的xml映射文件：包名(targetPackage)、位置(targetProject) &ndash;&gt;-->
+<!--        <sqlMapGenerator targetPackage="com.example.sunxu_mall.mapper.mall" targetProject=".\src\main\resources">-->
+<!--            <property name="enableSubPackages" value="true"/>-->
+<!--        </sqlMapGenerator>-->
+
+<!--        &lt;!&ndash; 生成sys_role表的DAO接口：包名(targetPackage)、位置(targetProject) &ndash;&gt;-->
+<!--        <javaClientGenerator type="XMLMAPPER" targetPackage="com.example.sunxu_mall.mapper.mall" targetProject=".\src\main\java">-->
+<!--            <property name="enableSubPackages" value="true"/>-->
+<!--        </javaClientGenerator>-->
+
+<!--        &lt;!&ndash; 要生成的表：common_photo &ndash;&gt;-->
+<!--        <table tableName="mall_product_group" domainObjectName="MallProductGroupEntity">-->
+<!--        </table>-->
+<!--    </context>-->
+
+<!--    <context id="mall_product_photo"  targetRuntime="MyBatis3">-->
+<!--        &lt;!&ndash; 实体类生成序列化属性&ndash;&gt;-->
+<!--        <plugin type="org.mybatis.generator.plugins.SerializablePlugin" />-->
+<!--        &lt;!&ndash; 实体类重写HashCode()和equals()&ndash;&gt;-->
+<!--        <plugin type="org.mybatis.generator.plugins.EqualsHashCodePlugin" />-->
+<!--        &lt;!&ndash; 实体类重写toString() &ndash;&gt;-->
+<!--        <plugin type="org.mybatis.generator.plugins.ToStringPlugin" />-->
+
+<!--        <commentGenerator>-->
+<!--            &lt;!&ndash; 是否去除自动生成的注释 &ndash;&gt;-->
+<!--            <property name="suppressAllComments" value="false"/>-->
+<!--            &lt;!&ndash; 生成注释是否带时间戳&ndash;&gt;-->
+<!--            <property name="suppressDate" value="true"/>-->
+<!--            &lt;!&ndash; 生成的Java文件的编码格式 &ndash;&gt;-->
+<!--            <property name="javaFileEncoding" value="utf-8"/>-->
+<!--            &lt;!&ndash; 格式化java代码&ndash;&gt;-->
+<!--            <property name="javaFormatter" value="org.mybatis.generator.api.dom.DefaultJavaFormatter" />-->
+<!--            &lt;!&ndash; 格式化XML代码&ndash;&gt;-->
+<!--            <property name="xmlFormatter" value="org.mybatis.generator.api.dom.DefaultXmlFormatter" />-->
+<!--        </commentGenerator>-->
+
+<!--        &lt;!&ndash; 数据库连接驱动类,URL，用户名、密码 &ndash;&gt;-->
+<!--        <jdbcConnection driverClass="com.mysql.cj.jdbc.Driver"-->
+<!--                        connectionURL="jdbc:mysql://127.0.0.1:3306/mall?useUnicode=true&amp;serverTimezone=Asia/Shanghai&amp;characterEncoding=UTF-8&amp;useSSL=false"-->
+<!--                        userId="root" password="123456">-->
+<!--            <property name="nullCatalogMeansCurrent" value="true"/>-->
+<!--        </jdbcConnection>-->
+
+<!--        &lt;!&ndash; java类型处理器：处理DB中的类型到Java中的类型 &ndash;&gt;-->
+<!--        <javaTypeResolver type="org.mybatis.generator.internal.types.JavaTypeResolverDefaultImpl">-->
+<!--            &lt;!&ndash; 是否有效识别DB中的BigDecimal类型 &ndash;&gt;-->
+<!--            <property name="forceBigDecimals" value="true"/>-->
+<!--            &lt;!&ndash; 开启 Java 8 时间类型支持 (JSR-310) &ndash;&gt;-->
+<!--            <property name="useJSR310Types" value="true"/>-->
+<!--        </javaTypeResolver>-->
+
+<!--        &lt;!&ndash; 生成sys_role表的Domain模型：包名(targetPackage)、位置(targetProject) &ndash;&gt;-->
+<!--        <javaModelGenerator targetPackage="com.example.sunxu_mall.entity.mall" targetProject=".\src\main\java">-->
+<!--            &lt;!&ndash; 在targetPackage的基础上，根据数据库的schema再生成一层package，最终生成的类放在这个package下，默认为false &ndash;&gt;-->
+<!--            <property name="enableSubPackages" value="true"/>-->
+<!--            &lt;!&ndash; 设置是否在getter方法中，对String类型字段调用trim()方法&ndash;&gt;-->
+<!--            <property name="trimStrings" value="true"/>-->
+<!--        </javaModelGenerator>-->
+
+<!--        &lt;!&ndash; 生成sys_role表的xml映射文件：包名(targetPackage)、位置(targetProject) &ndash;&gt;-->
+<!--        <sqlMapGenerator targetPackage="com.example.sunxu_mall.mapper.mall" targetProject=".\src\main\resources">-->
+<!--            <property name="enableSubPackages" value="true"/>-->
+<!--        </sqlMapGenerator>-->
+
+<!--        &lt;!&ndash; 生成sys_role表的DAO接口：包名(targetPackage)、位置(targetProject) &ndash;&gt;-->
+<!--        <javaClientGenerator type="XMLMAPPER" targetPackage="com.example.sunxu_mall.mapper.mall" targetProject=".\src\main\java">-->
+<!--            <property name="enableSubPackages" value="true"/>-->
+<!--        </javaClientGenerator>-->
+
+<!--        &lt;!&ndash; 要生成的表：mall_product_photo &ndash;&gt;-->
+<!--        <table tableName="mall_product_photo" domainObjectName="MallProductPhotoEntity">-->
+<!--        </table>-->
+<!--    </context>-->
+
+<!--    <context id="mall_unit"  targetRuntime="MyBatis3">-->
+<!--        &lt;!&ndash; 实体类生成序列化属性&ndash;&gt;-->
+<!--        <plugin type="org.mybatis.generator.plugins.SerializablePlugin" />-->
+<!--        &lt;!&ndash; 实体类重写HashCode()和equals()&ndash;&gt;-->
+<!--        <plugin type="org.mybatis.generator.plugins.EqualsHashCodePlugin" />-->
+<!--        &lt;!&ndash; 实体类重写toString() &ndash;&gt;-->
+<!--        <plugin type="org.mybatis.generator.plugins.ToStringPlugin" />-->
+
+<!--        <commentGenerator>-->
+<!--            &lt;!&ndash; 是否去除自动生成的注释 &ndash;&gt;-->
+<!--            <property name="suppressAllComments" value="false"/>-->
+<!--            &lt;!&ndash; 生成注释是否带时间戳&ndash;&gt;-->
+<!--            <property name="suppressDate" value="true"/>-->
+<!--            &lt;!&ndash; 生成的Java文件的编码格式 &ndash;&gt;-->
+<!--            <property name="javaFileEncoding" value="utf-8"/>-->
+<!--            &lt;!&ndash; 格式化java代码&ndash;&gt;-->
+<!--            <property name="javaFormatter" value="org.mybatis.generator.api.dom.DefaultJavaFormatter" />-->
+<!--            &lt;!&ndash; 格式化XML代码&ndash;&gt;-->
+<!--            <property name="xmlFormatter" value="org.mybatis.generator.api.dom.DefaultXmlFormatter" />-->
+<!--        </commentGenerator>-->
+
+<!--        &lt;!&ndash; 数据库连接驱动类,URL，用户名、密码 &ndash;&gt;-->
+<!--        <jdbcConnection driverClass="com.mysql.cj.jdbc.Driver"-->
+<!--                        connectionURL="jdbc:mysql://127.0.0.1:3306/mall?useUnicode=true&amp;serverTimezone=Asia/Shanghai&amp;characterEncoding=UTF-8&amp;useSSL=false"-->
+<!--                        userId="root" password="123456">-->
+<!--            <property name="nullCatalogMeansCurrent" value="true"/>-->
+<!--        </jdbcConnection>-->
+
+<!--        &lt;!&ndash; java类型处理器：处理DB中的类型到Java中的类型 &ndash;&gt;-->
+<!--        <javaTypeResolver type="org.mybatis.generator.internal.types.JavaTypeResolverDefaultImpl">-->
+<!--            &lt;!&ndash; 是否有效识别DB中的BigDecimal类型 &ndash;&gt;-->
+<!--            <property name="forceBigDecimals" value="true"/>-->
+<!--            &lt;!&ndash; 开启 Java 8 时间类型支持 (JSR-310) &ndash;&gt;-->
+<!--            <property name="useJSR310Types" value="true"/>-->
+<!--        </javaTypeResolver>-->
+
+<!--        &lt;!&ndash; 生成sys_role表的Domain模型：包名(targetPackage)、位置(targetProject) &ndash;&gt;-->
+<!--        <javaModelGenerator targetPackage="com.example.sunxu_mall.entity.mall" targetProject=".\src\main\java">-->
+<!--            &lt;!&ndash; 在targetPackage的基础上，根据数据库的schema再生成一层package，最终生成的类放在这个package下，默认为false &ndash;&gt;-->
+<!--            <property name="enableSubPackages" value="true"/>-->
+<!--            &lt;!&ndash; 设置是否在getter方法中，对String类型字段调用trim()方法&ndash;&gt;-->
+<!--            <property name="trimStrings" value="true"/>-->
+<!--        </javaModelGenerator>-->
+
+<!--        &lt;!&ndash; 生成sys_role表的xml映射文件：包名(targetPackage)、位置(targetProject) &ndash;&gt;-->
+<!--        <sqlMapGenerator targetPackage="com.example.sunxu_mall.mapper.mall" targetProject=".\src\main\resources">-->
+<!--            <property name="enableSubPackages" value="true"/>-->
+<!--        </sqlMapGenerator>-->
+
+<!--        &lt;!&ndash; 生成sys_role表的DAO接口：包名(targetPackage)、位置(targetProject) &ndash;&gt;-->
+<!--        <javaClientGenerator type="XMLMAPPER" targetPackage="com.example.sunxu_mall.mapper.mall" targetProject=".\src\main\java">-->
+<!--            <property name="enableSubPackages" value="true"/>-->
+<!--        </javaClientGenerator>-->
+
+<!--        &lt;!&ndash; 要生成的表：mall_unit &ndash;&gt;-->
+<!--        <table tableName="mall_unit" domainObjectName="MallUnitEntity">-->
+<!--        </table>-->
+<!--    </context>-->
 
 
 </generatorConfiguration>

@@ -2,6 +2,7 @@ package com.example.sunxu_mall.controller.mall;
 
 import com.example.sunxu_mall.annotation.ExcelExport;
 import com.example.sunxu_mall.convert.mall.ProductStructMapper;
+import com.example.sunxu_mall.dto.mall.CreateProductDTO;
 import com.example.sunxu_mall.dto.mall.ProductQueryDTO;
 import com.example.sunxu_mall.dto.mall.UpdateProductDTO;
 import com.example.sunxu_mall.entity.mall.ProductEntity;
@@ -38,6 +39,19 @@ public class ProductController {
     public ProductController(ProductService productService, ProductStructMapper productStructMapper) {
         this.productService = productService;
         this.productStructMapper = productStructMapper;
+    }
+
+    /**
+     * 新增商品
+     *
+     * @param request 新增商品请求
+     * @return 新增后的商品信息
+     */
+    @Operation(summary = "新增商品", description = "创建新商品，涉及商品组、属性、详情等多个表的写入")
+    @PostMapping
+    public ResponseEntity<ProductVO> create(@Valid @RequestBody CreateProductDTO request) {
+        ProductEntity created = productService.createProduct(request);
+        return ResponseEntity.ok(productStructMapper.toVO(created));
     }
 
     /**
@@ -84,6 +98,19 @@ public class ProductController {
             @Valid @RequestBody UpdateProductDTO request) {
         ProductEntity updated = productService.updateProduct(id, request);
         return ResponseEntity.ok(productStructMapper.toVO(updated));
+    }
+
+    /**
+     * 删除商品（软删除）
+     */
+    @Operation(summary = "删除商品", description = "软删除商品，并级联软删详情/属性/图片等关联数据")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Boolean> delete(
+            @Parameter(description = "商品ID", required = true)
+            @PathVariable Long id
+    ) {
+        productService.deleteProduct(id);
+        return ResponseEntity.ok(true);
     }
 
     /**

@@ -1,9 +1,6 @@
 package com.example.sunxu_mall.service.mall;
 
-import com.example.sunxu_mall.dto.mall.ProductDetailDTO;
-import com.example.sunxu_mall.dto.mall.ProductQueryDTO;
-import com.example.sunxu_mall.dto.mall.UpdateProductAttributeDTO;
-import com.example.sunxu_mall.dto.mall.UpdateProductDTO;
+import com.example.sunxu_mall.dto.mall.*;
 import com.example.sunxu_mall.entity.auth.JwtUserEntity;
 import com.example.sunxu_mall.entity.mall.*;
 import com.example.sunxu_mall.exception.BusinessException;
@@ -11,17 +8,16 @@ import com.example.sunxu_mall.mapper.mall.*;
 import com.example.sunxu_mall.service.BaseService;
 import com.example.sunxu_mall.util.BeanCopyUtils;
 import com.example.sunxu_mall.util.SecurityUtil;
+import cn.hutool.crypto.digest.DigestUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -36,19 +32,28 @@ public class ProductService extends BaseService<ProductEntity, ProductQueryDTO> 
     private final ProductAttributeEntityMapper productAttributeMapper;
     private final AttributeValueEntityMapper attributeValueMapper;
     private final CommonPhotoEntityMapper commonPhotoMapper;
+    private final MallProductGroupEntityMapper productGroupMapper;
+    private final MallProductDetailEntityMapper productDetailMapper;
+    private final MallProductPhotoEntityMapper productPhotoMapper;
 
     public ProductService(
             ProductEntityMapper productMapper,
             ProductGroupAttributeEntityMapper productGroupAttributeMapper,
             ProductAttributeEntityMapper productAttributeMapper,
             AttributeValueEntityMapper attributeValueMapper,
-            CommonPhotoEntityMapper commonPhotoMapper
+            CommonPhotoEntityMapper commonPhotoMapper,
+            MallProductGroupEntityMapper productGroupMapper,
+            MallProductDetailEntityMapper productDetailMapper,
+            MallProductPhotoEntityMapper productPhotoMapper
     ) {
         this.productMapper = productMapper;
         this.productGroupAttributeMapper = productGroupAttributeMapper;
         this.productAttributeMapper = productAttributeMapper;
         this.attributeValueMapper = attributeValueMapper;
         this.commonPhotoMapper = commonPhotoMapper;
+        this.productGroupMapper = productGroupMapper;
+        this.productDetailMapper = productDetailMapper;
+        this.productPhotoMapper = productPhotoMapper;
     }
 
     /**
@@ -69,9 +74,203 @@ public class ProductService extends BaseService<ProductEntity, ProductQueryDTO> 
         fillSpuAttributeValue(productDetailDTO);
         fillSkuAttributeValue(productDetailDTO);
         fillPhoto(productDetailDTO);
-        // fillDetail(productDetailDTO); // Mongo functionality pending
+        fillDetail(productDetailDTO);
 
         return productDetailDTO;
+    }
+
+    private void fillDetail(ProductDetailDTO productDetailDTO) {
+        MallProductDetailEntityExample example = new MallProductDetailEntityExample();
+        example.createCriteria().andProductIdEqualTo(productDetailDTO.getId()).andIsDelEqualTo(false);
+        List<MallProductDetailEntity> details = productDetailMapper.selectByExampleWithBLOBs(example);
+        if (CollectionUtils.isNotEmpty(details)) {
+            byte[] content = details.get(0).getDetail();
+            if (content != null) {
+                productDetailDTO.setDetail(new String(content, StandardCharsets.UTF_8));
+            }
+        }
+    }
+
+    /**
+     * Create a new product
+     *
+     * @param dto CreateProductDTO
+     * @return Created product
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public ProductEntity createProduct(CreateProductDTO dto) {
+        JwtUserEntity currentUser = SecurityUtil.getUserInfo();
+        LocalDateTime now = LocalDateTime.now();
+
+        // 1. Process Product Group
+        String groupHash = generateGroupHash(dto.getCategoryId(), dto.getUnitId(), dto.getSpuAttributes());
+        MallProductGroupEntityExample groupExample = new MallProductGroupEntityExample();
+        groupExample.createCriteria()
+                .andCategoryIdEqualTo(dto.getCategoryId())
+                .andUnitIdEqualTo(dto.getUnitId())
+                .andHashEqualTo(groupHash)
+                .andIsDelEqualTo(false);
+        List<MallProductGroupEntity> groups = productGroupMapper.selectByExample(groupExample);
+
+        Long productGroupId;
+        if (CollectionUtils.isEmpty(groups)) {
+            MallProductGroupEntity group = MallProductGroupEntity.builder()
+                    .categoryId(dto.getCategoryId())
+                    .unitId(dto.getUnitId())
+                    .name(dto.getName())
+                    .model(dto.getModel())
+                    .hash(groupHash)
+                    .createUserId(currentUser.getId())
+                    .createUserName(currentUser.getUsername())
+                    .updateUserId(currentUser.getId())
+                    .updateUserName(currentUser.getUsername())
+                    .createTime(now)
+                    .updateTime(now)
+                    .isDel(false)
+                    .version(1)
+                    .build();
+            productGroupMapper.insertSelective(group);
+            productGroupId = group.getId();
+
+            // Save SPU Attributes
+            if (CollectionUtils.isNotEmpty(dto.getSpuAttributes())) {
+                for (CreateProductAttributeDTO attr : dto.getSpuAttributes()) {
+                    ProductGroupAttributeEntity pga = ProductGroupAttributeEntity.builder()
+                            .productGroupId(productGroupId)
+                            .attributeId(attr.getAttributeId())
+                            .attributeValueId(attr.getAttributeValueId())
+                            .createUserId(currentUser.getId())
+                            .createUserName(currentUser.getUsername())
+                            .updateUserId(currentUser.getId())
+                            .updateUserName(currentUser.getUsername())
+                            .createTime(now)
+                            .updateTime(now)
+                            .isDel(false)
+                            .build();
+                    productGroupAttributeMapper.insertSelective(pga);
+                }
+            }
+        } else {
+            productGroupId = groups.get(0).getId();
+        }
+
+        // 2. Process Product
+        String productHash = generateProductHash(productGroupId, dto.getBrandId(), dto.getSkuAttributes());
+        ProductEntityExample productExample = new ProductEntityExample();
+        productExample.createCriteria()
+                .andProductGroupIdEqualTo(productGroupId)
+                .andBrandIdEqualTo(dto.getBrandId())
+                .andHashEqualTo(productHash)
+                .andIsDelEqualTo(false);
+        if (productMapper.countByExample(productExample) > 0) {
+            throw new BusinessException(RESOURCE_CONFLICT.getCode(), "该规格商品已存在");
+        }
+
+        ProductEntity product = ProductEntity.builder()
+                .categoryId(dto.getCategoryId())
+                .productGroupId(productGroupId)
+                .brandId(dto.getBrandId())
+                .unitId(dto.getUnitId())
+                .name(dto.getName())
+                .model(dto.getModel())
+                .quantity(dto.getQuantity())
+                .remainQuantity(dto.getQuantity())
+                .price(dto.getPrice())
+                .coverUrl(dto.getCoverUrl())
+                .hash(productHash)
+                .createUserId(currentUser.getId())
+                .createUserName(currentUser.getUsername())
+                .updateUserId(currentUser.getId())
+                .updateUserName(currentUser.getUsername())
+                .createTime(now)
+                .updateTime(now)
+                .isDel(false)
+                .version(1)
+                .build();
+        productMapper.insertSelective(product);
+        Long productId = product.getId();
+
+        // 3. Process Product Detail
+        if (StringUtils.isNotBlank(dto.getDetail())) {
+            MallProductDetailEntity detail = MallProductDetailEntity.builder()
+                    .productId(productId)
+                    .detail(dto.getDetail().getBytes(StandardCharsets.UTF_8))
+                    .createUserId(currentUser.getId())
+                    .createUserName(currentUser.getUsername())
+                    .updateUserId(currentUser.getId())
+                    .updateUserName(currentUser.getUsername())
+                    .createTime(now)
+                    .updateTime(now)
+                    .isDel(false)
+                    .version(1)
+                    .build();
+            productDetailMapper.insertSelective(detail);
+        }
+
+        // 4. Process SKU Attributes
+        if (CollectionUtils.isNotEmpty(dto.getSkuAttributes())) {
+            for (CreateProductAttributeDTO attr : dto.getSkuAttributes()) {
+                ProductAttributeEntity pa = ProductAttributeEntity.builder()
+                        .productId(productId)
+                        .attributeId(attr.getAttributeId())
+                        .attributeValueId(attr.getAttributeValueId())
+                        .createUserId(currentUser.getId())
+                        .createUserName(currentUser.getUsername())
+                        .updateUserId(currentUser.getId())
+                        .updateUserName(currentUser.getUsername())
+                        .createTime(now)
+                        .updateTime(now)
+                        .isDel(false)
+                        .build();
+                productAttributeMapper.insertSelective(pa);
+            }
+        }
+
+        // 5. Process Photos
+        if (CollectionUtils.isNotEmpty(dto.getPhotos())) {
+            int sort = 1;
+            for (String url : dto.getPhotos()) {
+                MallProductPhotoEntity photo = MallProductPhotoEntity.builder()
+                        .productId(productId)
+                        .url(url)
+                        .sort(sort++)
+                        .type(false) // Assume false for swiper
+                        .createUserId(currentUser.getId())
+                        .createUserName(currentUser.getUsername())
+                        .updateUserId(currentUser.getId())
+                        .updateUserName(currentUser.getUsername())
+                        .createTime(now)
+                        .updateTime(now)
+                        .isDel(false)
+                        .version(1)
+                        .build();
+                productPhotoMapper.insertSelective(photo);
+            }
+        }
+        // If coverUrl is provided, also save it as a special photo type if needed, 
+        // or just keep it in mall_product.cover_url (already handled by copyNonNullProperties)
+
+        return product;
+    }
+
+    private String generateGroupHash(Long categoryId, Long unitId, List<CreateProductAttributeDTO> attrs) {
+        return generateAttrHash(categoryId + ":" + unitId, attrs);
+    }
+
+    private String generateProductHash(Long groupId, Long brandId, List<CreateProductAttributeDTO> attrs) {
+        return generateAttrHash(groupId + ":" + brandId, attrs);
+    }
+
+    private String generateAttrHash(String prefix, List<CreateProductAttributeDTO> attrs) {
+        if (CollectionUtils.isEmpty(attrs)) {
+            return DigestUtil.md5Hex(prefix);
+        }
+        String attrStr = attrs.stream()
+                .sorted(Comparator.comparing(CreateProductAttributeDTO::getAttributeId)
+                        .thenComparing(CreateProductAttributeDTO::getAttributeValueId))
+                .map(a -> a.getAttributeId() + ":" + a.getAttributeValueId())
+                .collect(Collectors.joining(","));
+        return DigestUtil.md5Hex(prefix + "|" + attrStr);
     }
 
     @Override
@@ -314,17 +513,18 @@ public class ProductService extends BaseService<ProductEntity, ProductQueryDTO> 
                 productAttributeMapper.updateByPrimaryKeySelective(existing);
             } else {
                 // 新增
-                ProductAttributeEntity newAttr = new ProductAttributeEntity();
-                newAttr.setProductId(productId);
-                newAttr.setAttributeId(attrReq.getAttributeId());
-                newAttr.setAttributeValueId(attrReq.getAttributeValueId());
-                newAttr.setCreateUserId(currentUser.getId());
-                newAttr.setCreateUserName(currentUser.getUsername());
-                newAttr.setCreateTime(now);
-                newAttr.setUpdateUserId(currentUser.getId());
-                newAttr.setUpdateUserName(currentUser.getUsername());
-                newAttr.setUpdateTime(now);
-                newAttr.setIsDel(false);
+                ProductAttributeEntity newAttr = ProductAttributeEntity.builder()
+                        .productId(productId)
+                        .attributeId(attrReq.getAttributeId())
+                        .attributeValueId(attrReq.getAttributeValueId())
+                        .createUserId(currentUser.getId())
+                        .createUserName(currentUser.getUsername())
+                        .createTime(now)
+                        .updateUserId(currentUser.getId())
+                        .updateUserName(currentUser.getUsername())
+                        .updateTime(now)
+                        .isDel(false)
+                        .build();
                 productAttributeMapper.insertSelective(newAttr);
             }
         }
@@ -338,15 +538,88 @@ public class ProductService extends BaseService<ProductEntity, ProductQueryDTO> 
         ProductEntityExample example = new ProductEntityExample();
         example.createCriteria().andIdIn(ids);
 
-        ProductEntity update = new ProductEntity();
-        update.setIsDel(true);
-        update.setUpdateTime(LocalDateTime.now());
-
         JwtUserEntity currentUser = SecurityUtil.getUserInfo();
-        update.setUpdateUserId(currentUser.getId());
-        update.setUpdateUserName(currentUser.getUsername());
+        ProductEntity update = ProductEntity.builder()
+                .isDel(true)
+                .updateTime(LocalDateTime.now())
+                .updateUserId(currentUser.getId())
+                .updateUserName(currentUser.getUsername())
+                .build();
 
         return productMapper.updateByExampleSelective(update, example);
+    }
+
+    /**
+     * 删除商品（软删除）并级联软删相关数据
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteProduct(Long productId) {
+        if (Objects.isNull(productId)) {
+            throw new BusinessException(PARAMETER_MISSING.getCode(), "Product ID cannot be null");
+        }
+
+        ProductEntity current = productMapper.selectByPrimaryKey(productId);
+        if (Objects.isNull(current) || Boolean.TRUE.equals(current.getIsDel())) {
+            throw new BusinessException(PRODUCT_NOT_EXIST.getCode(), "Product not found");
+        }
+
+        JwtUserEntity currentUser = SecurityUtil.getUserInfo();
+        LocalDateTime now = LocalDateTime.now();
+
+        // 1) 软删商品本身
+        ProductEntity updateProduct = ProductEntity.builder()
+                .id(productId)
+                .isDel(true)
+                .delId(productId)
+                .updateUserId(currentUser.getId())
+                .updateUserName(currentUser.getUsername())
+                .updateTime(now)
+                .build();
+        productMapper.updateByPrimaryKeySelective(updateProduct);
+
+        // 2) 级联软删 SKU 属性（mall_product_attribute）
+        ProductAttributeEntityExample paExample = new ProductAttributeEntityExample();
+        paExample.createCriteria().andProductIdEqualTo(productId).andIsDelEqualTo(false);
+        ProductAttributeEntity paUpdate = ProductAttributeEntity.builder()
+                .isDel(true)
+                .updateUserId(currentUser.getId())
+                .updateUserName(currentUser.getUsername())
+                .updateTime(now)
+                .build();
+        productAttributeMapper.updateByExampleSelective(paUpdate, paExample);
+
+        // 3) 级联软删详情（mall_product_detail）
+        MallProductDetailEntityExample detailExample = new MallProductDetailEntityExample();
+        detailExample.createCriteria().andProductIdEqualTo(productId).andIsDelEqualTo(false);
+        MallProductDetailEntity detailUpdate = MallProductDetailEntity.builder()
+                .isDel(true)
+                .updateUserId(currentUser.getId())
+                .updateUserName(currentUser.getUsername())
+                .updateTime(now)
+                .build();
+        productDetailMapper.updateByExampleSelective(detailUpdate, detailExample);
+
+        // 4) 级联软删图片（mall_product_photo）
+        MallProductPhotoEntityExample photoExample = new MallProductPhotoEntityExample();
+        photoExample.createCriteria().andProductIdEqualTo(productId).andIsDelEqualTo(false);
+        MallProductPhotoEntity photoUpdate = MallProductPhotoEntity.builder()
+                .isDel(true)
+                .updateUserId(currentUser.getId())
+                .updateUserName(currentUser.getUsername())
+                .updateTime(now)
+                .build();
+        productPhotoMapper.updateByExampleSelective(photoUpdate, photoExample);
+
+        // 5) 兼容旧图片表（common_photo），按 photo_group_id = productId 软删
+        CommonPhotoEntityExample commonPhotoExample = new CommonPhotoEntityExample();
+        commonPhotoExample.createCriteria().andPhotoGroupIdEqualTo(productId).andIsDelEqualTo(false);
+        CommonPhotoEntity commonPhotoUpdate = CommonPhotoEntity.builder()
+                .isDel(true)
+                .updateUserId(currentUser.getId())
+                .updateUserName(currentUser.getUsername())
+                .updateTime(now)
+                .build();
+        commonPhotoMapper.updateByExampleSelective(commonPhotoUpdate, commonPhotoExample);
     }
 
     private void fillSpuAttributeValue(ProductDetailDTO productDetailDTO) {

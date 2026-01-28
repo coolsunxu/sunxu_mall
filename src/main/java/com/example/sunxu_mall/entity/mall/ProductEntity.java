@@ -1,9 +1,16 @@
 package com.example.sunxu_mall.entity.mall;
 
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.NoArgsConstructor;
+
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class ProductEntity implements Serializable {
     /**
      *
