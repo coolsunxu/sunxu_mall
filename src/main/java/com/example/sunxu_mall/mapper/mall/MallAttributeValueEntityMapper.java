@@ -93,4 +93,23 @@ public interface MallAttributeValueEntityMapper {
      * @mbg.generated
      */
     int updateByPrimaryKey(MallAttributeValueEntity row);
+
+    /**
+     * 带 limit 的列表查询（用于导出等场景）
+     */
+    List<com.example.sunxu_mall.vo.mall.AttributeValueVO> selectListWithLimit(
+            @Param("attributeId") Long attributeId,
+            @Param("value") String value,
+            @Param("limit") int limit
+    );
+
+    /**
+     * 带 limit 的游标分页查询
+     */
+    List<com.example.sunxu_mall.vo.mall.AttributeValueVO> selectByCursorWithLimit(
+            @Param("attributeId") Long attributeId,
+            @Param("value") String value,
+            @Param("cursorId") Long cursorId,
+            @Param("limit") int limit
+    );
 }

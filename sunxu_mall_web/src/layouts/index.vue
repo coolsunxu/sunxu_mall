@@ -20,7 +20,7 @@
         <!-- 动态菜单渲染 -->
         <template v-for="menu in menuTree" :key="menu.id">
           <!-- 有子菜单的情况 -->
-          <el-sub-menu v-if="menu.children && menu.children.length > 0" :index="menu.path || String(menu.id)">
+          <el-sub-menu v-if="menu.children && menu.children.length > 0" :index="(menu.path && menu.path.startsWith('/') ? menu.path : '/' + (menu.path || '')) || String(menu.id)">
             <template #title>
               <el-icon v-if="menu.icon"><component :is="menu.icon" /></el-icon>
               <span>{{ menu.label }}</span>
@@ -28,7 +28,7 @@
             <el-menu-item 
               v-for="child in menu.children" 
               :key="child.id" 
-              :index="child.path"
+              :index="(child.path && (child.path.startsWith('/') ? child.path : '/' + child.path)) || String(child.id)"
             >
               {{ child.label }}
             </el-menu-item>
@@ -115,6 +115,7 @@
 import { useRouter } from 'vue-router'
 import { computed, onMounted, ref } from 'vue'
 import { ElMessageBox, ElMessage } from 'element-plus'
+import { HomeFilled, Bell } from '@element-plus/icons-vue'
 import { useMenuStore } from '../stores/menu'
 import { useUserStore } from '../stores/user'
 import { useNotifyStore } from '../stores/notify'
@@ -205,6 +206,21 @@ const handleLogout = async () => {
 
 .sidebar {
   background-color: #304156;
+}
+
+/* 方案：增加子菜单层级缩进 */
+:deep(.el-sub-menu .el-menu-item) {
+  padding-left: 50px !important; /* 二级菜单缩进 */
+  background-color: #1f2d3d !important; /* 稍深一点的背景色，增强层级感 */
+}
+
+:deep(.el-sub-menu .el-sub-menu .el-menu-item) {
+  padding-left: 70px !important; /* 三级菜单缩进（如果有） */
+}
+
+/* 悬浮样式优化 */
+:deep(.el-menu-item:hover) {
+  background-color: #001528 !important;
 }
 
 .logo {

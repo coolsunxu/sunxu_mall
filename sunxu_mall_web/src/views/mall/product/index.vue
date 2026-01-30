@@ -154,7 +154,7 @@
                         action="#"
                         :auto-upload="true"
                         :show-file-list="false"
-                        :http-request="(opt) => handleUpload(opt, 'cover')"
+                        :http-request="handleCoverUpload"
                       >
                         <el-icon style="cursor: pointer"><Upload /></el-icon>
                       </el-upload>
@@ -259,7 +259,7 @@
               action="#"
               list-type="picture-card"
               :auto-upload="true"
-              :http-request="(opt) => handleUpload(opt, 'swiper')"
+              :http-request="handleSwiperUpload"
               :on-remove="handleRemovePhoto"
             >
               <el-icon><Plus /></el-icon>
@@ -302,9 +302,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, onMounted, computed } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Picture, Plus, Delete, Upload } from '@element-plus/icons-vue'
+import { Picture, Plus, Upload } from '@element-plus/icons-vue'
 import { 
   searchProductByBidirectionalCursor, 
   updateProduct, 
@@ -322,13 +322,19 @@ import PaginationBar from '@/components/PaginationBar.vue'
 import type { 
   ProductVO, 
   ProductQueryDTO, 
-  UpdateProductDTO, 
   CategoryTree, 
   Brand, 
   Unit, 
   AttributeWithValues,
   CreateProductDTO
 } from '@/types'
+
+// el-upload 自定义上传回调参数（最小字段集即可满足当前用法）
+type UploadRequestOption = {
+  file: File
+  onSuccess: (res: any, file: File) => void
+  onError: (err: any) => void
+}
 
 // 基础数据选项
 const categoryOptions = ref<CategoryTree[]>([])
@@ -577,7 +583,7 @@ const handleEdit = async (row: ProductVO) => {
 }
 
 // 处理上传
-const handleUpload = async (option: any, type: 'cover' | 'swiper') => {
+const handleUpload = async (option: UploadRequestOption, type: 'cover' | 'swiper') => {
   try {
     const res = await uploadFile(option.file)
     if (type === 'cover') {
@@ -597,6 +603,9 @@ const handleUpload = async (option: any, type: 'cover' | 'swiper') => {
     ElMessage.error('上传失败')
   }
 }
+
+const handleCoverUpload = (option: UploadRequestOption) => handleUpload(option, 'cover')
+const handleSwiperUpload = (option: UploadRequestOption) => handleUpload(option, 'swiper')
 
 const handleRemovePhoto = (file: any) => {
   const url = file.url

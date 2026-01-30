@@ -19,6 +19,21 @@
     <result column="is_del" jdbcType="BIT" property="isDel" />
     <result column="version" jdbcType="INTEGER" property="version" />
   </resultMap>
+
+  <resultMap id="VOResultMap" type="com.example.sunxu_mall.vo.mall.AttributeValueVO">
+    <id column="id" jdbcType="BIGINT" property="id" />
+    <result column="attribute_id" jdbcType="BIGINT" property="attributeId" />
+    <result column="attribute_name" jdbcType="VARCHAR" property="attributeName" />
+    <result column="value" jdbcType="VARCHAR" property="value" />
+    <result column="sort" jdbcType="INTEGER" property="sort" />
+    <result column="create_user_id" jdbcType="BIGINT" property="createUserId" />
+    <result column="create_user_name" jdbcType="VARCHAR" property="createUserName" />
+    <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
+    <result column="update_user_id" jdbcType="BIGINT" property="updateUserId" />
+    <result column="update_user_name" jdbcType="VARCHAR" property="updateUserName" />
+    <result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
+    <result column="version" jdbcType="INTEGER" property="version" />
+  </resultMap>
   <sql id="Example_Where_Clause">
     <!--
       WARNING - @mbg.generated
@@ -380,4 +395,45 @@
       version = #{version,jdbcType=INTEGER}
     where id = #{id,jdbcType=BIGINT}
   </update>
+
+  <!-- 带 limit 的列表查询（用于导出等场景） -->
+  <select id="selectListWithLimit" resultMap="VOResultMap">
+    select
+      v.id, v.attribute_id, a.name as attribute_name, v.value, v.sort, 
+      v.create_user_id, v.create_user_name, v.create_time, 
+      v.update_user_id, v.update_user_name, v.update_time, v.version
+    from mall_attribute_value v
+    left join mall_attribute a on a.id = v.attribute_id and a.is_del = 0
+    where v.is_del = 0
+    <if test="attributeId != null">
+      and v.attribute_id = #{attributeId}
+    </if>
+    <if test="value != null and value != ''">
+      and v.value like concat('%', #{value}, '%')
+    </if>
+    order by v.id desc
+    limit #{limit}
+  </select>
+
+  <!-- 带 limit 的游标分页查询 -->
+  <select id="selectByCursorWithLimit" resultMap="VOResultMap">
+    select
+      v.id, v.attribute_id, a.name as attribute_name, v.value, v.sort, 
+      v.create_user_id, v.create_user_name, v.create_time, 
+      v.update_user_id, v.update_user_name, v.update_time, v.version
+    from mall_attribute_value v
+    left join mall_attribute a on a.id = v.attribute_id and a.is_del = 0
+    where v.is_del = 0
+    <if test="cursorId != null">
+      and v.id &lt; #{cursorId}
+    </if>
+    <if test="attributeId != null">
+      and v.attribute_id = #{attributeId}
+    </if>
+    <if test="value != null and value != ''">
+      and v.value like concat('%', #{value}, '%')
+    </if>
+    order by v.id desc
+    limit #{limit}
+  </select>
 </mapper>

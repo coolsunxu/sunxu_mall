@@ -1,4 +1,5 @@
 import axios from 'axios'
+import type { AxiosInstance, AxiosRequestConfig } from 'axios'
 
 // 是否开启 HTTP 调试日志：
 // - 默认：开发环境开启，生产环境关闭
@@ -8,6 +9,20 @@ const HTTP_DEBUG =
   (import.meta.env.DEV && import.meta.env.VITE_HTTP_DEBUG !== 'false')
 
 // 创建axios实例
+// 说明：我们在响应拦截器里会把返回值从 AxiosResponse 变成 `apiResult.data`，
+// 因此这里把实例声明成“返回 Promise<T>”的形式，避免业务层拿到 AxiosResponse 类型而报错。
+interface RequestInstance extends AxiosInstance {
+  <T = any>(config: AxiosRequestConfig): Promise<T>
+  request<T = any>(config: AxiosRequestConfig): Promise<T>
+  get<T = any>(url: string, config?: AxiosRequestConfig): Promise<T>
+  delete<T = any>(url: string, config?: AxiosRequestConfig): Promise<T>
+  head<T = any>(url: string, config?: AxiosRequestConfig): Promise<T>
+  options<T = any>(url: string, config?: AxiosRequestConfig): Promise<T>
+  post<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T>
+  put<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T>
+  patch<T = any>(url: string, data?: any, config?: AxiosRequestConfig): Promise<T>
+}
+
 const service = axios.create({
   baseURL: '/api', // 使用相对路径，配合vite代理
   timeout: 10000, // 请求超时时间
@@ -27,7 +42,7 @@ const service = axios.create({
     }
     return data
   }]
-})
+}) as RequestInstance
 
 // 请求拦截器
 service.interceptors.request.use(

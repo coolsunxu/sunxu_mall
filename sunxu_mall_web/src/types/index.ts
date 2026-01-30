@@ -78,7 +78,9 @@ export interface ResponsePageEntity<T> {
   pageNum: number
   pageSize: number
   total: number
-  list: T[]
+  list?: T[]
+  rows?: T[]
+  pages?: number
 }
 
 // 游标分页响应格式 - 对应后端 ResponseCursorEntity
@@ -271,4 +273,83 @@ export interface CreateProductDTO {
   spuAttributes?: CreateProductAttributeDTO[]
   skuAttributes?: CreateProductAttributeDTO[]
   photos?: string[]
+}
+
+// 属性值展示对象 - 对应后端 MallAttributeValueEntity
+export interface AttributeValueVO {
+  id: number
+  attributeId: number
+  attributeName?: string
+  value: string
+  sort: number
+  createUserId: number
+  createUserName: string
+  createTime: string
+  updateUserId?: number
+  updateUserName?: string
+  updateTime?: string
+}
+
+// 属性值查询参数 - 对应后端 AttributeValueQueryDTO
+export interface AttributeValueQueryDTO {
+  pageNum?: number
+  pageSize?: number
+  cursorId?: number
+  cursorDirection?: string // NEXT, PREV
+  cursorToken?: string // Base64 encoded cursor state
+  attributeId?: number
+  value?: string
+  sort?: number
+  createUserId?: number
+  createUserName?: string
+  startTime?: string
+  endTime?: string
+}
+
+// 属性值创建参数 - 对应后端 CreateAttributeValueDTO
+export interface CreateAttributeValueDTO {
+  attributeId: number
+  value: string
+  sort?: number
+}
+
+// 属性值更新参数 - 对应后端 UpdateAttributeValueDTO
+export interface UpdateAttributeValueDTO {
+  id: number
+  attributeId: number
+  value: string
+  sort?: number
+}
+
+// 属性展示对象 - 对应后端 MallAttributeEntity
+export interface AttributeVO {
+  id: number
+  name: string
+  createUserId: number
+  createUserName: string
+  createTime: string
+  updateUserId?: number
+  updateUserName?: string
+  updateTime?: string
+}
+
+// 属性查询参数
+export interface AttributeQueryDTO {
+  pageNum?: number
+  pageSize?: number
+  cursorId?: number
+  cursorDirection?: string // NEXT, PREV
+  cursorToken?: string // Base64 encoded cursor state
+  name?: string
+}
+
+// 属性创建参数
+export interface CreateAttributeDTO {
+  name: string
+}
+
+// 属性更新参数
+export interface UpdateAttributeDTO {
+  id: number
+  name: string
 }

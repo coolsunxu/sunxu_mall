@@ -44,6 +44,25 @@ const routes: RouteRecordRaw[] = [
           icon: 'goods',
         },
       },
+      {
+        path: '/attributeValue',
+        name: 'AttributeValue',
+        component: () => import('@/views/mall/attributeValue/index.vue'),
+        meta: {
+          title: '属性值管理',
+          icon: 'setting',
+          hidden: true, // 方案一：隐藏独立入口，通过属性列表管理
+        },
+      },
+      {
+        path: '/attribute',
+        name: 'Attribute',
+        component: () => import('@/views/mall/attribute/index.vue'),
+        meta: {
+          title: '属性列表',
+          icon: 'list',
+        },
+      },
     ],
   },
   {
@@ -67,7 +86,7 @@ const router = createRouter({
 })
 
 // 路由守卫 - 检查登录状态
-router.beforeEach((to, from, next) => {
+router.beforeEach((to, _from, next) => {
   const token = localStorage.getItem('token')
   
   // 如果是登录页面，直接放行

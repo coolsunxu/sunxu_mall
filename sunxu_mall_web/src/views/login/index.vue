@@ -45,11 +45,16 @@ const form = reactive({
   code: ''
 })
 
+type CaptchaEntity = {
+  uuid: string
+  img: string
+}
+
 // 获取验证码
 const getCaptcha = async () => {
   try {
     console.log('🔄 开始获取验证码...')
-    const response = await request.get('/web/user/code')
+    const response = await request.get<CaptchaEntity>('/web/user/code')
     console.log('✅ 获取验证码成功:', response)
     // 后端返回 CaptchaEntity { uuid, img }
     // img 字段是 base64 字符串，需要添加 data URL 前缀
