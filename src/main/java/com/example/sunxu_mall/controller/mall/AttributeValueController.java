@@ -8,7 +8,6 @@ import com.example.sunxu_mall.service.mall.AttributeValueService;
 import com.example.sunxu_mall.vo.mall.AttributeValueVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -17,19 +16,19 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * @author sunxu
+ */
+
 @Tag(name = "属性值管理", description = "商品属性值接口")
 @RestController
 @RequestMapping("/v1/attributeValue")
 public class AttributeValueController {
 
-    @Autowired
-    private AttributeValueService attributeValueService;
+    private final AttributeValueService attributeValueService;
 
-    @Operation(summary = "[Deprecated] 分页查询属性值", description = "根据条件分页查询属性值列表")
-    @PostMapping("/searchByPage")
-    @Deprecated
-    public Map<String, Object> searchByPage(@RequestBody AttributeValueQueryDTO queryDTO) {
-        return attributeValueService.searchByPage(queryDTO);
+    public AttributeValueController(AttributeValueService attributeValueService) {
+        this.attributeValueService = attributeValueService;
     }
 
     @Operation(summary = "查询属性值列表（游标分页）", description = "支持向前/向后翻页，可指定页码")

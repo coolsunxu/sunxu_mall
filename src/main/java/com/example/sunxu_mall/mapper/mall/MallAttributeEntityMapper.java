@@ -93,4 +93,30 @@ public interface MallAttributeEntityMapper {
      * @mbg.generated
      */
     int updateByPrimaryKey(MallAttributeEntity row);
+
+    /**
+     * CAS 乐观锁更新
+     * 仅更新业务字段，version 在 SQL 中自增
+     *
+     * @param row 属性实体（需包含 id 和 version）
+     * @return 更新行数，0 表示版本冲突
+     */
+    int updateWithVersion(MallAttributeEntity row);
+
+    /**
+     * 带 limit 的列表查询（用于导出等场景）
+     */
+    List<com.example.sunxu_mall.vo.mall.AttributeVO> selectListWithLimit(
+            @Param("name") String name,
+            @Param("limit") int limit
+    );
+
+    /**
+     * 带 limit 的游标分页查询
+     */
+    List<com.example.sunxu_mall.vo.mall.AttributeVO> selectByCursorWithLimit(
+            @Param("name") String name,
+            @Param("cursorId") Long cursorId,
+            @Param("limit") int limit
+    );
 }

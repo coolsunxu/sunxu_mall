@@ -28,6 +28,8 @@ public class FillUserUtil {
     private static final String UPDATE_USER_ID = "updateUserId";
     private static final String UPDATE_USER_NAME = "updateUserName";
     private static final String UPDATE_TIME = "updateTime";
+    private static final String IS_DEL = "isDel";
+    private static final String VERSION = "version";
 
     /**
      * 插入时填充审计字段
@@ -58,6 +60,8 @@ public class FillUserUtil {
             setFieldIfNull(entity, CREATE_USER_ID, userId);
             setFieldIfNull(entity, CREATE_USER_NAME, userName);
             setFieldIfNull(entity, CREATE_TIME, now);
+            setFieldIfNull(entity, IS_DEL, false);
+            setFieldIfNull(entity, VERSION, 0);
         }
 
         setField(entity, UPDATE_USER_ID, userId);

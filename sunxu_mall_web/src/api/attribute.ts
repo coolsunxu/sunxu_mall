@@ -1,5 +1,5 @@
 import request from '../utils/request'
-import type { AttributeVO, CreateAttributeDTO, UpdateAttributeDTO } from '../types'
+import type { AttributeVO, CreateAttributeDTO, UpdateAttributeDTO, AttributeQueryDTO, ResponseCursorEntity } from '../types'
 
 /**
  * 获取所有属性
@@ -10,9 +10,17 @@ export function getAll(): Promise<AttributeVO[]> {
 
 /**
  * 获取所有属性及其值
+ * @deprecated 请使用 searchByBidirectionalCursor 分页查询
  */
 export function getAllWithValues(): Promise<any[]> {
   return request.get('/attribute/allWithValues')
+}
+
+/**
+ * 分页查询属性列表（游标分页）
+ */
+export function searchByBidirectionalCursor(data: AttributeQueryDTO): Promise<ResponseCursorEntity<AttributeVO>> {
+  return request.post('/attribute/searchByBidirectionalCursor', data)
 }
 
 /**

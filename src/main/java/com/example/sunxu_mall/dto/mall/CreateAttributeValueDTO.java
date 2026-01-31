@@ -3,6 +3,10 @@ package com.example.sunxu_mall.dto.mall;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
+/**
+ * @author sunxu
+ */
+
 @Data
 @Schema(description = "Create Attribute Value DTO")
 public class CreateAttributeValueDTO {

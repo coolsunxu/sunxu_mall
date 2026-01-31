@@ -3,7 +3,6 @@ package com.example.sunxu_mall.service.mall;
 import com.example.sunxu_mall.dto.mall.AttributeValueQueryDTO;
 import com.example.sunxu_mall.dto.mall.CreateAttributeValueDTO;
 import com.example.sunxu_mall.dto.mall.UpdateAttributeValueDTO;
-import com.example.sunxu_mall.entity.auth.JwtUserEntity;
 import com.example.sunxu_mall.entity.mall.MallAttributeEntity;
 import com.example.sunxu_mall.entity.mall.MallAttributeValueEntity;
 import com.example.sunxu_mall.entity.mall.MallAttributeValueEntityExample;
@@ -12,20 +11,29 @@ import com.example.sunxu_mall.mapper.mall.MallAttributeEntityMapper;
 import com.example.sunxu_mall.mapper.mall.MallAttributeValueEntityMapper;
 import com.example.sunxu_mall.model.ResponseCursorEntity;
 import com.example.sunxu_mall.service.BaseService;
-import com.example.sunxu_mall.util.SecurityUtil;
+import com.example.sunxu_mall.util.BeanCopyUtils;
 import com.example.sunxu_mall.vo.mall.AttributeValueVO;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 
 import static com.example.sunxu_mall.errorcode.ErrorCode.PARAMETER_MISSING;
 
+/**
+ * 属性值服务类
+ * 采用 MyBatis 拦截器自动填充审计字段，乐观锁实现并发控制
+ *
+ * @author sunxu
+ * @version 1.0
+ */
+@Slf4j
 @Service
 public class AttributeValueService extends BaseService<AttributeValueVO, AttributeValueQueryDTO> {
 
@@ -44,39 +52,12 @@ public class AttributeValueService extends BaseService<AttributeValueVO, Attribu
     }
 
 
-    @Deprecated
-    public Map<String, Object> searchByPage(AttributeValueQueryDTO queryDTO) {
-        // 保留旧接口逻辑，但不推荐使用
-        MallAttributeValueEntityExample example = new MallAttributeValueEntityExample();
-        MallAttributeValueEntityExample.Criteria criteria = example.createCriteria();
-        criteria.andIsDelEqualTo(false);
-
-        if (queryDTO.getAttributeId() != null) {
-            criteria.andAttributeIdEqualTo(queryDTO.getAttributeId());
-        }
-        if (queryDTO.getValue() != null && !queryDTO.getValue().isEmpty()) {
-            criteria.andValueLike("%" + queryDTO.getValue() + "%");
-        }
-
-        example.setOrderByClause("sort asc, create_time desc");
-        List<MallAttributeValueEntity> list = attributeValueEntityMapper.selectByExample(example);
-
-        long total = list.size();
-        Map<String, Object> result = new HashMap<>();
-        result.put("rows", list);
-        result.put("total", total);
-        result.put("pageNum", queryDTO.getPageNum());
-        result.put("pageSize", queryDTO.getPageSize());
-
-        return result;
-    }
-
-
+    @Override
     public ResponseCursorEntity<AttributeValueVO> searchByBidirectionalCursor(AttributeValueQueryDTO queryDTO) {
         return super.searchByBidirectionalCursor(queryDTO);
     }
 
-
+    @Override
     protected List<AttributeValueVO> selectListWithLimit(AttributeValueQueryDTO query, int limit) {
         return attributeValueEntityMapper.selectListWithLimit(
                 query.getAttributeId(),
@@ -85,7 +66,7 @@ public class AttributeValueService extends BaseService<AttributeValueVO, Attribu
         );
     }
 
-
+    @Override
     protected List<AttributeValueVO> selectListByCursorWithLimit(AttributeValueQueryDTO query, Long cursorId, int limit) {
         return attributeValueEntityMapper.selectByCursorWithLimit(
                 query.getAttributeId(),
@@ -95,12 +76,19 @@ public class AttributeValueService extends BaseService<AttributeValueVO, Attribu
         );
     }
 
-
+    @Override
     protected Long extractEntityId(AttributeValueVO entity) {
         return Objects.isNull(entity) ? null : entity.getId();
     }
 
 
+    /**
+     * 插入属性值
+     * 审计字段由 MyBatis 拦截器自动填充
+     *
+     * @param createDTO 创建属性值 DTO
+     * @return 是否插入成功
+     */
     @Transactional(rollbackFor = Exception.class)
     public boolean insert(CreateAttributeValueDTO createDTO) {
         // 校验属性是否存在
@@ -114,65 +102,77 @@ public class AttributeValueService extends BaseService<AttributeValueVO, Attribu
             entity.setSort(999);
         }
 
-        JwtUserEntity currentUser = SecurityUtil.getUserInfo();
-        LocalDateTime now = LocalDateTime.now();
-
         entity.setIsDel(false);
         entity.setVersion(1);
-        entity.setCreateTime(now);
-        entity.setUpdateTime(now);
-        entity.setCreateUserId(currentUser.getId());
-        entity.setCreateUserName(currentUser.getUsername());
-        entity.setUpdateUserId(currentUser.getId());
-        entity.setUpdateUserName(currentUser.getUsername());
+        // 审计字段由 MyBatis 拦截器自动填充
 
         return attributeValueEntityMapper.insert(entity) > 0;
     }
 
 
+    /**
+     * 更新属性值
+     * 采用乐观锁机制：version + CAS + retry
+     * 审计字段由 MyBatis 拦截器自动填充
+     *
+     * @param updateDTO 更新属性值 DTO
+     * @return 是否更新成功
+     */
     @Transactional(rollbackFor = Exception.class)
+    @Retryable(value = OptimisticLockingFailureException.class, maxAttempts = 3, backoff = @Backoff(delay = 100))
     public boolean update(UpdateAttributeValueDTO updateDTO) {
-        if (updateDTO.getId() == null) {
+        if (Objects.isNull(updateDTO) || Objects.isNull(updateDTO.getId())) {
             throw new BusinessException(PARAMETER_MISSING.getCode(), "属性值ID不能为空");
         }
 
-        MallAttributeValueEntity entity = attributeValueEntityMapper.selectByPrimaryKey(updateDTO.getId());
-        if (entity == null || Boolean.TRUE.equals(entity.getIsDel())) {
+        Long id = updateDTO.getId();
+        MallAttributeValueEntity current = attributeValueEntityMapper.selectByPrimaryKey(id);
+        if (Objects.isNull(current) || Boolean.TRUE.equals(current.getIsDel())) {
             throw new BusinessException("属性值不存在或已被删除");
         }
 
         // 如果修改了 attributeId，需要校验
-        if (updateDTO.getAttributeId() != null && !updateDTO.getAttributeId().equals(entity.getAttributeId())) {
+        if (updateDTO.getAttributeId() != null && !updateDTO.getAttributeId().equals(current.getAttributeId())) {
             validateAttribute(updateDTO.getAttributeId());
         }
 
-        BeanUtils.copyProperties(updateDTO, entity);
+        // 保存当前版本号用于 CAS
+        Integer oldVersion = current.getVersion();
 
-        JwtUserEntity currentUser = SecurityUtil.getUserInfo();
-        entity.setUpdateTime(LocalDateTime.now());
-        entity.setUpdateUserId(currentUser.getId());
-        entity.setUpdateUserName(currentUser.getUsername());
-        // 乐观锁版本增加
-        entity.setVersion(entity.getVersion() + 1);
+        // 复制非空属性
+        BeanCopyUtils.copyNonNullProperties(updateDTO, current);
 
-        return attributeValueEntityMapper.updateByPrimaryKeySelective(entity) > 0;
+        // 保持版本号为旧版本（用于 CAS 条件）
+        current.setVersion(oldVersion);
+        // 审计字段由 MyBatis 拦截器自动填充
+
+        // CAS 更新（SQL 层保证 version 匹配后自增）
+        int rows = attributeValueEntityMapper.updateWithVersion(current);
+        if (rows == 0) {
+            log.warn("Optimistic lock failure for attributeValueId {}", id);
+            throw new OptimisticLockingFailureException("属性值数据已被修改，请刷新后重试");
+        }
+
+        return true;
     }
 
 
+    /**
+     * 批量删除属性值（逻辑删除）
+     * 审计字段由 MyBatis 拦截器自动填充
+     *
+     * @param ids 属性值ID列表
+     * @return 是否删除成功
+     */
     @Transactional(rollbackFor = Exception.class)
     public boolean deleteByIds(List<Long> ids) {
         if (ids == null || ids.isEmpty()) {
             return true;
         }
 
-        JwtUserEntity currentUser = SecurityUtil.getUserInfo();
-        LocalDateTime now = LocalDateTime.now();
-
         MallAttributeValueEntity update = new MallAttributeValueEntity();
         update.setIsDel(true);
-        update.setUpdateTime(now);
-        update.setUpdateUserId(currentUser.getId());
-        update.setUpdateUserName(currentUser.getUsername());
+        // 审计字段由 MyBatis 拦截器自动填充
 
         MallAttributeValueEntityExample example = new MallAttributeValueEntityExample();
         example.createCriteria().andIdIn(ids).andIsDelEqualTo(false);

@@ -112,4 +112,13 @@ public interface MallAttributeValueEntityMapper {
             @Param("cursorId") Long cursorId,
             @Param("limit") int limit
     );
+
+    /**
+     * CAS 乐观锁更新
+     * 仅更新业务字段，version 在 SQL 中自增
+     *
+     * @param row 属性值实体（需包含 id 和 version）
+     * @return 更新行数，0 表示版本冲突
+     */
+    int updateWithVersion(MallAttributeValueEntity row);
 }

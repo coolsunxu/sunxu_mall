@@ -348,4 +348,73 @@
       version = #{version,jdbcType=INTEGER}
     where id = #{id,jdbcType=BIGINT}
   </update>
+
+  <!--
+    updateWithVersion: CAS 乐观锁更新
+    仅允许更新业务字段（白名单）
+    禁止更新: create_user_id, create_user_name, create_time, is_del
+  -->
+  <update id="updateWithVersion" parameterType="com.example.sunxu_mall.entity.mall.MallAttributeEntity">
+    update mall_attribute
+    <set>
+      <if test="name != null">
+        name = #{name,jdbcType=VARCHAR},
+      </if>
+      <if test="updateUserId != null">
+        update_user_id = #{updateUserId,jdbcType=BIGINT},
+      </if>
+      <if test="updateUserName != null">
+        update_user_name = #{updateUserName,jdbcType=VARCHAR},
+      </if>
+      <if test="updateTime != null">
+        update_time = #{updateTime,jdbcType=TIMESTAMP},
+      </if>
+      version = version + 1
+    </set>
+    where id = #{id,jdbcType=BIGINT}
+      and version = #{version,jdbcType=INTEGER}
+  </update>
+
+  <resultMap id="VOResultMap" type="com.example.sunxu_mall.vo.mall.AttributeVO">
+    <id column="id" jdbcType="BIGINT" property="id" />
+    <result column="name" jdbcType="VARCHAR" property="name" />
+    <result column="create_user_id" jdbcType="BIGINT" property="createUserId" />
+    <result column="create_user_name" jdbcType="VARCHAR" property="createUserName" />
+    <result column="create_time" jdbcType="TIMESTAMP" property="createTime" />
+    <result column="update_user_id" jdbcType="BIGINT" property="updateUserId" />
+    <result column="update_user_name" jdbcType="VARCHAR" property="updateUserName" />
+    <result column="update_time" jdbcType="TIMESTAMP" property="updateTime" />
+    <result column="version" jdbcType="INTEGER" property="version" />
+  </resultMap>
+
+  <!-- 带 limit 的列表查询（用于导出等场景） -->
+  <select id="selectListWithLimit" resultMap="VOResultMap">
+    select
+      id, name, create_user_id, create_user_name, create_time,
+      update_user_id, update_user_name, update_time, version
+    from mall_attribute
+    where is_del = 0
+    <if test="name != null and name != ''">
+      and name like concat('%', #{name}, '%')
+    </if>
+    order by id desc
+    limit #{limit}
+  </select>
+
+  <!-- 带 limit 的游标分页查询 -->
+  <select id="selectByCursorWithLimit" resultMap="VOResultMap">
+    select
+      id, name, create_user_id, create_user_name, create_time,
+      update_user_id, update_user_name, update_time, version
+    from mall_attribute
+    where is_del = 0
+    <if test="cursorId != null">
+      and id &lt; #{cursorId}
+    </if>
+    <if test="name != null and name != ''">
+      and name like concat('%', #{name}, '%')
+    </if>
+    order by id desc
+    limit #{limit}
+  </select>
 </mapper>

@@ -31,17 +31,28 @@
         type="primary"
         size="small"
         class="filter-item"
+        :icon="Search"
         @click="handleSearch"
       >
         搜索
       </el-button>
       <el-button
+        type="info"
+        size="small"
+        class="filter-item"
+        :icon="Refresh"
+        @click="resetAndFetch"
+      >
+        刷新
+      </el-button>
+      <el-button
         type="primary"
         size="small"
         class="filter-item"
+        :icon="Plus"
         @click="handleAdd"
       >
-        新增
+        新增属性值
       </el-button>
     </div>
 
@@ -94,6 +105,20 @@
       >
         <template #default="scope">
           {{ formatTime(scope.row.createTime) }}
+        </template>
+      </el-table-column>
+      <el-table-column
+        prop="updateUserName"
+        label="修改人"
+        width="120"
+      />
+      <el-table-column
+        prop="updateTime"
+        label="修改日期"
+        width="180"
+      >
+        <template #default="scope">
+          {{ formatTime(scope.row.updateTime) }}
         </template>
       </el-table-column>
       <el-table-column
@@ -172,6 +197,7 @@
 </template>
 
 <script setup lang="ts">
+import { Search, Plus, Refresh } from '@element-plus/icons-vue'
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import * as attributeValueApi from '@/api/attributeValue'
@@ -262,6 +288,17 @@ const handleSearch = () => {
   maxPageReached.value = 1
   query.cursorToken = undefined
   query.cursorDirection = 'NEXT'
+  fetchData()
+}
+
+// 重置并刷新
+const resetAndFetch = () => {
+  currentPage.value = 1
+  maxPageReached.value = 1
+  query.cursorToken = undefined
+  query.cursorDirection = 'NEXT'
+  query.value = ''
+  query.attributeId = undefined
   fetchData()
 }
 
