@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
+import { markAsRead, markAllAsRead } from '../api/notify'
 
 export interface NotificationItem {
   id: string
@@ -27,10 +28,31 @@ export const useNotifyStore = defineStore('notify', () => {
     unreadCount.value++
   }
 
-  // 标记所有为已读
-  const markAllRead = () => {
-    notifications.value.forEach(item => item.read = true)
-    unreadCount.value = 0
+  // 标记单个通知为已读
+  const markNotificationAsRead = async (notifyId: string) => {
+    const notify = notifications.value.find(item => item.id === notifyId)
+    if (notify && !notify.read) {
+      try {
+        await markAsRead(notifyId)
+        notify.read = true
+        unreadCount.value = Math.max(0, unreadCount.value - 1)
+      } catch (error) {
+        console.error('标记通知已读失败', error)
+      }
+    }
+  }
+
+  // 标记所有为已读（点击通知中心时调用）
+  const markAllRead = async () => {
+    if (unreadCount.value === 0) return
+    
+    try {
+      await markAllAsRead()
+      notifications.value.forEach(item => item.read = true)
+      unreadCount.value = 0
+    } catch (error) {
+      console.error('标记所有通知已读失败', error)
+    }
   }
 
   // 清空通知
@@ -43,6 +65,7 @@ export const useNotifyStore = defineStore('notify', () => {
     notifications,
     unreadCount,
     addNotification,
+    markNotificationAsRead,
     markAllRead,
     clearNotifications
   }

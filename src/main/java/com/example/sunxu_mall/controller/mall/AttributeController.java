@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 属性管理控制器
@@ -51,6 +52,17 @@ public class AttributeController {
     @GetMapping("/all")
     public ResponseEntity<List<AttributeVO>> getAll() {
         return ResponseEntity.ok(attributeService.getAll());
+    }
+
+    /**
+     * 获取所有属性及其值
+     *
+     * @return 属性及其值列表
+     */
+    @Operation(summary = "获取所有属性及其值", description = "获取所有属性及其对应的属性值列表")
+    @GetMapping("/allWithValues")
+    public ResponseEntity<List<Map<String, Object>>> getAllWithValues() {
+        return ResponseEntity.ok(attributeService.getAllWithValues());
     }
 
     /**

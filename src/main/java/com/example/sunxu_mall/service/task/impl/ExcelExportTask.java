@@ -1,6 +1,7 @@
 package com.example.sunxu_mall.service.task.impl;
 
 import cn.hutool.json.JSONUtil;
+import com.example.sunxu_mall.constant.ExportConstant;
 import com.example.sunxu_mall.constant.MQConstant;
 import com.example.sunxu_mall.dto.BasePageQuery;
 import com.example.sunxu_mall.dto.mq.MqMessage;
@@ -23,9 +24,9 @@ import com.example.sunxu_mall.util.SpringBeanUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.support.TransactionCallbackWithoutResult;
+import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.util.ObjectUtils;
-
-import static com.example.sunxu_mall.constant.NumberConstant.NUMBER_3;
 
 /**
  * @author sunxu
@@ -41,15 +42,18 @@ public class ExcelExportTask implements IAsyncTask {
     private final CommonTaskService commonTaskService;
     private final MessageProducer messageProducer;
     private final CommonNotifyService commonNotifyService;
+    private final TransactionTemplate transactionTemplate;
 
     public ExcelExportTask(
             CommonTaskService commonTaskService,
             MessageProducer messageProducer,
-            CommonNotifyService commonNotifyService
+            CommonNotifyService commonNotifyService,
+            TransactionTemplate transactionTemplate
     ) {
         this.commonTaskService = commonTaskService;
         this.messageProducer = messageProducer;
         this.commonNotifyService = commonNotifyService;
+        this.transactionTemplate = transactionTemplate;
     }
 
     @Async("exportExecutor")
@@ -76,7 +80,12 @@ public class ExcelExportTask implements IAsyncTask {
         }
 
         // 5. 完成任务（更新状态、发送通知）
-        finalizeTask(commonTaskEntity);
+        transactionTemplate.execute(new TransactionCallbackWithoutResult() {
+            @Override
+            protected void doInTransactionWithoutResult(org.springframework.transaction.TransactionStatus status) {
+                finalizeTask(commonTaskEntity);
+            }
+        });
     }
 
     private ExcelBizTypeEnum initTaskStatus(CommonTaskEntity commonTaskEntity) {
@@ -121,8 +130,8 @@ public class ExcelExportTask implements IAsyncTask {
         log.warn("Data export exception, reason: ", e);
         // 失败次数加1
         commonTaskEntity.setFailureCount((byte) (commonTaskEntity.getFailureCount() + 1));
-        // 如果失败次数超过3次，则将状态改成失败，后面不再执行
-        if (commonTaskEntity.getFailureCount() >= NUMBER_3) {
+        // 如果失败次数超过最大重试次数，则将状态改成失败，后面不再执行
+        if (commonTaskEntity.getFailureCount() >= ExportConstant.MAX_FAILURE_COUNT) {
             commonTaskEntity.setStatus(TaskStatusEnum.FAIL.getCode());
         }
     }
@@ -146,10 +155,10 @@ public class ExcelExportTask implements IAsyncTask {
         messageProducer.send(
                 MQConstant.MALL_COMMON_TASK_TOPIC,
                 MQConstant.TAG_NOTIFICATION,
-                String.valueOf(commonTaskEntity.getId()),
+                String.valueOf(commonNotifyEntity.getId()),
                 MqMessage.builder()
                         .eventType(TaskTypeEnum.EXPORT_EXCEL.getDesc())
-                        .businessKey(String.valueOf(commonTaskEntity.getId()))
+                        .businessKey(String.valueOf(commonNotifyEntity.getId()))
                         .content(taskResultJson)
                         .build()
         );
@@ -162,12 +171,8 @@ public class ExcelExportTask implements IAsyncTask {
                 .content(content)
                 .toUserId(commonTaskEntity.getCreateUserId())
                 .isPush(Boolean.FALSE)
-                .type((byte) 1)
-                .readStatus((byte) 0)
-                .createUserId(commonTaskEntity.getCreateUserId())
-                .createUserName(commonTaskEntity.getCreateUserName())
-                .createTime(java.time.LocalDateTime.now())
-                .isDel(Boolean.FALSE)
+                .type(ExportConstant.NOTIFY_TYPE_SYSTEM)
+                .readStatus(ExportConstant.READ_STATUS_UNREAD)
                 .build();
     }
 
@@ -182,6 +187,6 @@ public class ExcelExportTask implements IAsyncTask {
     }
 
     private String getFileName(String fileName) {
-        return String.format("%s数据_%s", fileName, DateFormatUtil.nowForFile());
+        return String.format(ExportConstant.FILE_NAME_FORMAT, fileName, DateFormatUtil.nowForFile());
     }
 }

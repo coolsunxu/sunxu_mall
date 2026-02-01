@@ -315,8 +315,10 @@ public class ProductService extends BaseService<ProductEntity, ProductQueryDTO> 
 
         int sort = INITIAL_SORT;
         for (String url : photos) {
+            String name = url.substring(url.lastIndexOf('/') + 1);
             MallProductPhotoEntity photo = MallProductPhotoEntity.builder()
                     .productId(productId)
+                    .name(name)
                     .url(url)
                     .sort(sort++)
                     .type(SWIPER_PHOTO_TYPE)

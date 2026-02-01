@@ -22,7 +22,6 @@
           <!-- 有子菜单的情况 -->
           <el-sub-menu v-if="menu.children && menu.children.length > 0" :index="(menu.path && menu.path.startsWith('/') ? menu.path : '/' + (menu.path || '')) || String(menu.id)">
             <template #title>
-              <el-icon v-if="menu.icon"><component :is="menu.icon" /></el-icon>
               <span>{{ menu.label }}</span>
             </template>
             <el-menu-item 
@@ -53,6 +52,7 @@
               placement="bottom"
               :width="300"
               trigger="click"
+              @show="handleNotifyShow"
             >
               <template #reference>
                 <div class="notify-container">
@@ -79,6 +79,7 @@
                     :key="item.id" 
                     class="notify-item"
                     :class="{ 'unread': !item.read }"
+                    @click="handleNotifyItemClick(item)"
                   >
                     <div class="notify-title">
                       <el-tag size="small" :type="item.type">{{ item.type === 'success' ? '成功' : '通知' }}</el-tag>
@@ -158,6 +159,22 @@ onMounted(async () => {
 
 const handleClearNotify = () => {
   notifyStore.clearNotifications()
+}
+
+const handleNotifyShow = () => {
+  // 标记所有通知为已读
+  notifyStore.markAllRead()
+}
+
+const handleNotifyItemClick = (item: any) => {
+  // 标记单个通知为已读
+  if (!item.read) {
+    notifyStore.markNotificationAsRead(item.id)
+  }
+  // 如果有下载链接，打开下载
+  if (item.data?.fileUrl) {
+    handleDownload(item.data.fileUrl)
+  }
 }
 
 const handleDownload = (url: string) => {

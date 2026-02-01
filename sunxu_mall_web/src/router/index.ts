@@ -60,7 +60,6 @@ const routes: RouteRecordRaw[] = [
         component: () => import('@/views/mall/attribute/index.vue'),
         meta: {
           title: '属性列表',
-          icon: 'list',
         },
       },
     ],
