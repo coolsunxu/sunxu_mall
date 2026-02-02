@@ -95,4 +95,42 @@ public interface CommonNotifyEntityMapper {
     int updateByPrimaryKey(CommonNotifyEntity row);
 
     int updateNotifyWithVersion(CommonNotifyEntity row);
+
+    /**
+     * 原子抢占推送权：将 push_status 从 NEW 改为 PROCESSING
+     * 只有抢占成功（返回1）才能继续推送
+     *
+     * @param id 通知ID
+     * @return 影响行数，1=抢占成功，0=抢占失败（已被其他线程抢占或状态不对）
+     */
+    int tryLockForPush(@Param("id") Long id);
+
+    /**
+     * 推送成功：标记为 SENT
+     *
+     * @param id 通知ID
+     * @return 影响行数
+     */
+    int markPushSent(@Param("id") Long id);
+
+    /**
+     * 推送失败：释放抢占并设置重试
+     *
+     * @param id            通知ID
+     * @param errorMsg      错误信息（截断）
+     * @param nextRetryTime 下次重试时间
+     * @return 影响行数
+     */
+    int markPushFailedAndRetry(@Param("id") Long id,
+                               @Param("errorMsg") String errorMsg,
+                               @Param("nextRetryTime") java.time.LocalDateTime nextRetryTime);
+
+    /**
+     * 推送失败：标记为终态失败（DEAD）
+     *
+     * @param id       通知ID
+     * @param errorMsg 错误信息
+     * @return 影响行数
+     */
+    int markPushDead(@Param("id") Long id, @Param("errorMsg") String errorMsg);
 }

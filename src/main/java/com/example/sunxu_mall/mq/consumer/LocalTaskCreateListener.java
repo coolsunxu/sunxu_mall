@@ -8,9 +8,10 @@ import com.example.sunxu_mall.service.common.CommonTaskService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 /**
  * @author sunxu
@@ -25,7 +26,11 @@ public class LocalTaskCreateListener {
     private final CommonTaskService commonTaskService;
 
     @Async("commonTaskExecutor")
-    @EventListener(condition = "#event.topic == '" + MQConstant.MALL_COMMON_TASK_CREATE_TOPIC + "'")
+    @TransactionalEventListener(
+            phase = TransactionPhase.AFTER_COMMIT,
+            fallbackExecution = true,
+            condition = "#event.topic == '" + MQConstant.MALL_COMMON_TASK_CREATE_TOPIC + "'"
+    )
     public void onMessage(MqEvent event) {
         log.info("Received Local create task request: {}", event.getMessage());
         try {

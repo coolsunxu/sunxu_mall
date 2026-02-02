@@ -68,7 +68,7 @@ app:
     rocket:
       topic: mall-rocket-topic
       topic2: mall-rocket-topic-2 # 测试用第二个 Topic
-    type: local # 测试用配置
+    type: rocket # 测试用配置 local, kafka, rocket
 
 logging:
   level:
@@ -78,8 +78,6 @@ mybatis:
   mapper-locations: classpath:com/example/sunxu_mall/mapper/**/*.xml
   configuration:
     map-underscore-to-camel-case: true
-
-# PageHelper 已移除，统一使用游标分页
 
 # SpringDoc OpenAPI 配置
 springdoc:

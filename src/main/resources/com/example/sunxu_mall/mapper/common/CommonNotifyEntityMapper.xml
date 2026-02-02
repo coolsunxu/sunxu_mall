@@ -21,6 +21,11 @@
     <result column="is_del" jdbcType="BIT" property="isDel" />
     <result column="to_user_id" jdbcType="BIGINT" property="toUserId" />
     <result column="is_push" jdbcType="BIT" property="isPush" />
+    <result column="push_status" jdbcType="TINYINT" property="pushStatus" />
+    <result column="push_retry_count" jdbcType="INTEGER" property="pushRetryCount" />
+    <result column="push_next_retry_time" jdbcType="TIMESTAMP" property="pushNextRetryTime" />
+    <result column="push_error_msg" jdbcType="VARCHAR" property="pushErrorMsg" />
+    <result column="push_time" jdbcType="TIMESTAMP" property="pushTime" />
     <result column="version" jdbcType="INTEGER" property="version" />
   </resultMap>
   <sql id="Example_Where_Clause">
@@ -96,7 +101,7 @@
     -->
     id, type, title, content, link_url, read_status, create_user_id, create_user_name, 
     create_time, update_user_id, update_user_name, update_time, is_del, to_user_id, is_push, 
-    version
+    push_status, push_retry_count, push_next_retry_time, push_error_msg, push_time, version
   </sql>
   <select id="selectByExample" parameterType="com.example.sunxu_mall.entity.common.CommonNotifyEntityExample" resultMap="BaseResultMap">
     <!--
@@ -492,5 +497,48 @@
     </set>
     where id = #{id,jdbcType=BIGINT}
       and version = #{version,jdbcType=INTEGER}
+  </update>
+
+  <!-- 原子抢占推送权：将 push_status 从 NEW(0) 改为 PROCESSING(1) -->
+  <update id="tryLockForPush">
+    UPDATE common_notify
+    SET push_status = 1,
+        update_time = NOW()
+    WHERE id = #{id,jdbcType=BIGINT}
+      AND push_status = 0
+      AND (push_next_retry_time IS NULL OR push_next_retry_time &lt;= NOW())
+  </update>
+
+  <!-- 推送成功：标记为 SENT(2) -->
+  <update id="markPushSent">
+    UPDATE common_notify
+    SET push_status = 2,
+        is_push = 1,
+        push_time = NOW(),
+        update_time = NOW()
+    WHERE id = #{id,jdbcType=BIGINT}
+      AND push_status = 1
+  </update>
+
+  <!-- 推送失败：释放抢占并设置重试 -->
+  <update id="markPushFailedAndRetry">
+    UPDATE common_notify
+    SET push_status = 0,
+        push_retry_count = push_retry_count + 1,
+        push_next_retry_time = #{nextRetryTime,jdbcType=TIMESTAMP},
+        push_error_msg = #{errorMsg,jdbcType=VARCHAR},
+        update_time = NOW()
+    WHERE id = #{id,jdbcType=BIGINT}
+      AND push_status = 1
+  </update>
+
+  <!-- 推送失败：标记为终态失败（DEAD=3） -->
+  <update id="markPushDead">
+    UPDATE common_notify
+    SET push_status = 3,
+        push_error_msg = #{errorMsg,jdbcType=VARCHAR},
+        update_time = NOW()
+    WHERE id = #{id,jdbcType=BIGINT}
+      AND push_status = 1
   </update>
 </mapper>

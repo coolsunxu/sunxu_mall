@@ -10,6 +10,7 @@ import com.example.sunxu_mall.enums.TaskStatusEnum;
 import com.example.sunxu_mall.enums.TaskTypeEnum;
 import com.example.sunxu_mall.exception.BusinessException;
 import com.example.sunxu_mall.mapper.common.CommonTaskEntityMapper;
+import com.example.sunxu_mall.mq.producer.MessageProducer;
 import com.example.sunxu_mall.util.BeanCopyUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -19,9 +20,6 @@ import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import org.springframework.transaction.support.TransactionSynchronization;
-import org.springframework.transaction.support.TransactionSynchronizationManager;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
@@ -29,13 +27,17 @@ import java.util.Objects;
 import static com.example.sunxu_mall.constant.MQConstant.MALL_COMMON_TASK_TOPIC;
 import static com.example.sunxu_mall.constant.MQConstant.TAG_EXCEL_EXPORT;
 
+/**
+ * @author sunxu
+ */
+
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class CommonTaskService {
 
     private final CommonTaskEntityMapper commonTaskEntityMapper;
-    private final com.example.sunxu_mall.mq.producer.MessageProducer messageProducer;
+    private final MessageProducer messageProducer;
 
     /**
      * 查询所有待处理的任务
@@ -104,28 +106,26 @@ public class CommonTaskService {
 
     /**
      * 创建定时任务
+     * <p>
+     * 消息发送由统一的 MessageProducer 处理：
+     * - local 模式：事件在事务提交后由 @TransactionalEventListener(AFTER_COMMIT) 触发
+     * - kafka/rocket 模式：消息写入 Outbox 表（同事务），由 Dispatcher 在事务提交后投递
      *
      * @param task 定时任务
      */
     @Transactional(rollbackFor = Exception.class)
     public void insert(CommonTaskEntity task) {
         commonTaskEntityMapper.insertSelective(task);
-        // 注册事务同步回调，确保事务提交后再发送消息，避免消费者查询不到数据
-        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
-            @Override
-            public void afterCommit() {
-                try {
-                    messageProducer.send(
-                            MALL_COMMON_TASK_TOPIC,
-                            TAG_EXCEL_EXPORT,
-                            String.valueOf(task.getId()),
-                            task.getId()
-                    );
-                } catch (Exception e) {
-                    log.warn("Failed to send MQ message for task: {}", task.getId(), e);
-                }
-            }
-        });
+
+        // 直接调用 messageProducer.send()，不再需要手写 afterCommit 回调
+        // - local 模式下：publishEvent 触发 TransactionalEventListener，事务提交后执行
+        // - kafka/rocket 模式下：写入 Outbox 表（同事务），Dispatcher 负责投递
+        messageProducer.send(
+                MALL_COMMON_TASK_TOPIC,
+                TAG_EXCEL_EXPORT,
+                String.valueOf(task.getId()),
+                task.getId()
+        );
     }
 
     /**

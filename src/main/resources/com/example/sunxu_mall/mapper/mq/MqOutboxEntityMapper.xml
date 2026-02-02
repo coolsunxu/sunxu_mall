@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.sunxu_mall.mapper.mq.MqOutboxEntityMapper">
+
+    <resultMap id="BaseResultMap" type="com.example.sunxu_mall.entity.mq.MqOutboxEntity">
+        <id column="id" jdbcType="BIGINT" property="id"/>
+        <result column="topic" jdbcType="VARCHAR" property="topic"/>
+        <result column="tag" jdbcType="VARCHAR" property="tag"/>
+        <result column="msg_key" jdbcType="VARCHAR" property="msgKey"/>
+        <result column="payload_json" jdbcType="LONGVARCHAR" property="payloadJson"/>
+        <result column="payload_class" jdbcType="VARCHAR" property="payloadClass"/>
+        <result column="status" jdbcType="TINYINT" property="status"/>
+        <result column="retry_count" jdbcType="INTEGER" property="retryCount"/>
+        <result column="next_retry_time" jdbcType="TIMESTAMP" property="nextRetryTime"/>
+        <result column="error_msg" jdbcType="VARCHAR" property="errorMsg"/>
+        <result column="create_time" jdbcType="TIMESTAMP" property="createTime"/>
+        <result column="update_time" jdbcType="TIMESTAMP" property="updateTime"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, topic, tag, msg_key, payload_json, payload_class, status,
+        retry_count, next_retry_time, error_msg, create_time, update_time
+    </sql>
+
+    <!-- 插入Outbox记录 -->
+    <insert id="insert" parameterType="com.example.sunxu_mall.entity.mq.MqOutboxEntity"
+            useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO mq_outbox (topic, tag, msg_key, payload_json, payload_class,
+                               status, retry_count, next_retry_time, error_msg, create_time, update_time)
+        VALUES (#{topic,jdbcType=VARCHAR}, #{tag,jdbcType=VARCHAR}, #{msgKey,jdbcType=VARCHAR},
+                #{payloadJson,jdbcType=LONGVARCHAR}, #{payloadClass,jdbcType=VARCHAR},
+                #{status,jdbcType=TINYINT}, #{retryCount,jdbcType=INTEGER},
+                #{nextRetryTime,jdbcType=TIMESTAMP}, #{errorMsg,jdbcType=VARCHAR},
+                NOW(), NOW())
+    </insert>
+
+    <!-- 根据ID查询 -->
+    <select id="selectByPrimaryKey" parameterType="java.lang.Long" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM mq_outbox
+        WHERE id = #{id,jdbcType=BIGINT}
+    </select>
+
+    <!-- 查询待发送的消息列表 -->
+    <select id="selectPendingMessages" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM mq_outbox
+        WHERE status = 0
+        AND (next_retry_time IS NULL OR next_retry_time &lt;= NOW())
+        ORDER BY id ASC
+        LIMIT #{limit,jdbcType=INTEGER}
+    </select>
+
+    <!-- 原子抢占发送权：将 status 从 NEW(0) 改为 SENDING(1) -->
+    <update id="tryLockForSend">
+        UPDATE mq_outbox
+        SET status      = 1,
+            update_time = NOW()
+        WHERE id = #{id,jdbcType=BIGINT}
+          AND status = 0
+          AND (next_retry_time IS NULL OR next_retry_time &lt;= NOW())
+    </update>
+
+    <!-- 标记发送成功 -->
+    <update id="markSent">
+        UPDATE mq_outbox
+        SET status      = 2,
+            update_time = NOW()
+        WHERE id = #{id,jdbcType=BIGINT}
+          AND status = 1
+    </update>
+
+    <!-- 标记发送失败并设置重试 -->
+    <update id="markFailedAndRetry">
+        UPDATE mq_outbox
+        SET status          = 0,
+            retry_count     = retry_count + 1,
+            next_retry_time = #{nextRetryTime,jdbcType=TIMESTAMP},
+            error_msg       = #{errorMsg,jdbcType=VARCHAR},
+            update_time     = NOW()
+        WHERE id = #{id,jdbcType=BIGINT}
+          AND status = 1
+    </update>
+
+    <!-- 标记发送失败（终态） -->
+    <update id="markFailed">
+        UPDATE mq_outbox
+        SET status      = 3,
+            error_msg   = #{errorMsg,jdbcType=VARCHAR},
+            update_time = NOW()
+        WHERE id = #{id,jdbcType=BIGINT}
+          AND status = 1
+    </update>
+
+    <!-- 删除已发送的历史消息（清理） -->
+    <delete id="deleteOldSentMessages">
+        DELETE
+        FROM mq_outbox
+        WHERE status = 2
+          AND create_time &lt; #{beforeTime,jdbcType=TIMESTAMP}
+    </delete>
+
+</mapper>

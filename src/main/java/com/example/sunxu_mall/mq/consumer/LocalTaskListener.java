@@ -5,9 +5,10 @@ import com.example.sunxu_mall.event.MqEvent;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 /**
  * @author sunxu
@@ -22,7 +23,11 @@ public class LocalTaskListener {
     private final TaskConsumerDelegate taskConsumerDelegate;
 
     @Async("commonTaskExecutor")
-    @EventListener(condition = "#event.topic == '" + MQConstant.MALL_COMMON_TASK_TOPIC + "'")
+    @TransactionalEventListener(
+            phase = TransactionPhase.AFTER_COMMIT,
+            fallbackExecution = true,
+            condition = "#event.topic == '" + MQConstant.MALL_COMMON_TASK_TOPIC + "'"
+    )
     public void onEvent(MqEvent event) {
         log.info("Received local event: key={}, message={}", event.getKey(), event.getMessage());
         try {
