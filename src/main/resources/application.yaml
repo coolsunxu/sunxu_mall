@@ -44,7 +44,7 @@ spring:
     bootstrap-servers: 127.0.0.1:9092
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
     consumer:
       group-id: mall-group
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
@@ -52,7 +52,7 @@ spring:
 
 # RocketMQ 配置
 rocketmq:
-  name-server: 117.72.88.11:9876
+  name-server: 127.0.0.1:9876
   producer:
     group: mall-rocket-producer-group
     send-message-timeout: 3000
@@ -63,11 +63,21 @@ rocketmq:
 app:
   mq:
     kafka:
-      topic: mall-kafka-topic
-      topic2: mall-kafka-topic-2 # 测试用第二个 Topic
+      task-topic: mall-task-execute-topic
+      create-topic: mall-task-create-topic
+      notification-topic: mall-notify-topic
+      # 为每个 Kafka 消费者配置独立的消费者组
+      task-consumer-group: mall-kafka-task-consumer-group
+      create-consumer-group: mall-kafka-create-consumer-group
+      notification-consumer-group: mall-kafka-notification-consumer-group
     rocket:
-      topic: mall-rocket-topic
-      topic2: mall-rocket-topic-2 # 测试用第二个 Topic
+      task-topic: mall-task-execute-topic
+      create-topic: mall-task-create-topic
+      notification-topic: mall-notify-topic
+      # 为每个 RocketMQ 消费者配置独立的消费者组
+      task-consumer-group: mall-rocket-task-consumer-group
+      create-consumer-group: mall-rocket-create-consumer-group
+      notification-consumer-group: mall-rocket-notification-consumer-group
     type: rocket # 测试用配置 local, kafka, rocket
 
 logging:

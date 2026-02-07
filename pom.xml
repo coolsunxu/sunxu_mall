@@ -147,6 +147,13 @@
             <version>2.0.39</version>
         </dependency>
 
+        <!-- FastJSON2，JSON处理库（推荐） -->
+        <dependency>
+            <groupId>com.alibaba.fastjson2</groupId>
+            <artifactId>fastjson2</artifactId>
+            <version>2.0.39</version>
+        </dependency>
+
         <!-- Gson，Google JSON处理库 -->
         <dependency>
             <groupId>com.google.code.gson</groupId>

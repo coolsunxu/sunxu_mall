@@ -1,6 +1,6 @@
 package com.example.sunxu_mall.service.task.impl;
 
-import cn.hutool.json.JSONUtil;
+import cn.hutool.core.util.IdUtil;
 import com.example.sunxu_mall.constant.ExportConstant;
 import com.example.sunxu_mall.constant.MQConstant;
 import com.example.sunxu_mall.dto.BasePageQuery;
@@ -20,11 +20,11 @@ import com.example.sunxu_mall.service.common.CommonTaskService;
 import com.example.sunxu_mall.service.task.IAsyncTask;
 import com.example.sunxu_mall.util.DateFormatUtil;
 import com.example.sunxu_mall.util.FillUserUtil;
+import com.example.sunxu_mall.util.JsonUtil;
 import com.example.sunxu_mall.util.SpringBeanUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.support.TransactionCallbackWithoutResult;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.util.ObjectUtils;
 
@@ -80,12 +80,7 @@ public class ExcelExportTask implements IAsyncTask {
         }
 
         // 5. 完成任务（更新状态、发送通知）
-        transactionTemplate.execute(new TransactionCallbackWithoutResult() {
-            @Override
-            protected void doInTransactionWithoutResult(org.springframework.transaction.TransactionStatus status) {
-                finalizeTask(commonTaskEntity);
-            }
-        });
+        transactionTemplate.executeWithoutResult(status -> finalizeTask(commonTaskEntity));
     }
 
     private ExcelBizTypeEnum initTaskStatus(CommonTaskEntity commonTaskEntity) {
@@ -109,7 +104,7 @@ public class ExcelExportTask implements IAsyncTask {
         }
 
         String requestParam = commonTaskEntity.getRequestParam();
-        Object toBean = JSONUtil.toBean(requestParam, aClass);
+        Object toBean = JsonUtil.parseObject(requestParam, aClass);
 
         String serviceName = excelBizTypeEnum.getServiceName();
         if (ObjectUtils.isEmpty(serviceName)) {
@@ -153,20 +148,21 @@ public class ExcelExportTask implements IAsyncTask {
 
         // 发送通知
         messageProducer.send(
-                MQConstant.MALL_COMMON_TASK_TOPIC,
+                MQConstant.MALL_NOTIFICATION_TOPIC,
                 MQConstant.TAG_NOTIFICATION,
-                String.valueOf(commonNotifyEntity.getId()),
-                MqMessage.builder()
+                commonNotifyEntity.getBizKey(),
+                JsonUtil.toJsonStr(MqMessage.builder()
                         .eventType(TaskTypeEnum.EXPORT_EXCEL.getDesc())
-                        .businessKey(String.valueOf(commonNotifyEntity.getId()))
+                        .businessKey(commonNotifyEntity.getBizKey())
                         .content(taskResultJson)
-                        .build()
+                        .build())
         );
     }
 
 
     private CommonNotifyEntity createNotifyMessage(CommonTaskEntity commonTaskEntity, String content) {
         return CommonNotifyEntity.builder()
+                .bizKey(generateBizKey())
                 .title(TaskTypeEnum.EXPORT_EXCEL.getDesc())
                 .content(content)
                 .toUserId(commonTaskEntity.getCreateUserId())
@@ -183,7 +179,11 @@ public class ExcelExportTask implements IAsyncTask {
                 .fileName(commonTaskEntity.getName())
                 .fileUrl(commonTaskEntity.getFileUrl())
                 .build();
-        return JSONUtil.toJsonStr(dto);
+        return JsonUtil.toJsonStr(dto);
+    }
+
+    private String generateBizKey() {
+        return IdUtil.getSnowflakeNextIdStr();
     }
 
     private String getFileName(String fileName) {

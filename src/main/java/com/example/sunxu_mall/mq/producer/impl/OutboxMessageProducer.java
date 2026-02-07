@@ -1,16 +1,14 @@
 package com.example.sunxu_mall.mq.producer.impl;
 
-import cn.hutool.json.JSONUtil;
 import com.example.sunxu_mall.entity.mq.MqOutboxEntity;
 import com.example.sunxu_mall.enums.OutboxStatusEnum;
 import com.example.sunxu_mall.mapper.mq.MqOutboxEntityMapper;
 import com.example.sunxu_mall.mq.producer.MessageProducer;
+import com.example.sunxu_mall.util.JsonUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.stereotype.Component;
-
-import java.util.Objects;
 
 /**
  * Outbox 模式的消息生产者（用于 Kafka/RocketMQ）
@@ -59,13 +57,16 @@ public class OutboxMessageProducer implements MessageProducer {
      * @return JSON 字符串
      */
     private String serializePayload(Object message) {
-        if (Objects.isNull(message)) {
-            return null;
+        if (message == null) {
+            return "null";
         }
         if (message instanceof String) {
             return (String) message;
         }
-        return JSONUtil.toJsonStr(message);
+        if (isPrimitiveWrapper(message)) {
+            return String.valueOf(message);
+        }
+        return JsonUtil.toJsonStr(message);
     }
 
     /**
@@ -75,9 +76,18 @@ public class OutboxMessageProducer implements MessageProducer {
      * @return 类名
      */
     private String getPayloadClass(Object message) {
-        if (Objects.isNull(message)) {
+        if (message == null) {
             return "null";
         }
+        if (isPrimitiveWrapper(message)) {
+            return String.class.getName();
+        }
         return message.getClass().getName();
+    }
+
+    private boolean isPrimitiveWrapper(Object message) {
+        return message instanceof Number
+                || message instanceof Boolean
+                || message instanceof Character;
     }
 }

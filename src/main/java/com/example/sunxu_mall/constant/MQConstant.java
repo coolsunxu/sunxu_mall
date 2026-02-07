@@ -9,12 +9,17 @@ public class MQConstant {
     /**
      * 通用任务 Topic
      */
-    public static final String MALL_COMMON_TASK_TOPIC = "mall-common-task-topic";
+    public static final String MALL_COMMON_TASK_TOPIC = "mall-task-execute-topic";
 
     /**
      * 通用任务创建 Topic (用于削峰)
      */
-    public static final String MALL_COMMON_TASK_CREATE_TOPIC = "mall-common-task-create-topic";
+    public static final String MALL_COMMON_TASK_CREATE_TOPIC = "mall-task-create-topic";
+
+    /**
+     * 通知推送 Topic
+     */
+    public static final String MALL_NOTIFICATION_TOPIC = "mall-notify-topic";
 
     /**
      * Excel导出任务 Tag

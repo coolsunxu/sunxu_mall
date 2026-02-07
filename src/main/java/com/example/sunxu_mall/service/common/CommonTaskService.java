@@ -1,5 +1,6 @@
 package com.example.sunxu_mall.service.common;
 
+import cn.hutool.core.util.IdUtil;
 import com.example.sunxu_mall.context.AuditContextHolder;
 import com.example.sunxu_mall.context.AuditUser;
 import com.example.sunxu_mall.dto.common.CommonTaskRequestDTO;
@@ -88,6 +89,7 @@ public class CommonTaskService {
 
             ExcelBizTypeEnum bizType = dto.getBizType();
             CommonTaskEntity commonTaskEntity = CommonTaskEntity.builder()
+                    .bizKey(IdUtil.getSnowflakeNextIdStr())
                     .name(String.format("Export %s Data", bizType.getDesc()))
                     .status(TaskStatusEnum.WAITING.getCode())
                     .failureCount((byte) 0)
@@ -123,8 +125,8 @@ public class CommonTaskService {
         messageProducer.send(
                 MALL_COMMON_TASK_TOPIC,
                 TAG_EXCEL_EXPORT,
-                String.valueOf(task.getId()),
-                task.getId()
+                task.getBizKey(),
+                task.getBizKey()
         );
     }
 

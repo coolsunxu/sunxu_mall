@@ -1,6 +1,7 @@
 package com.example.sunxu_mall.mq.consumer;
 
 import com.example.sunxu_mall.dto.mq.MqMessage;
+import com.example.sunxu_mall.util.JsonUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.spring.annotation.RocketMQMessageListener;
@@ -15,32 +16,19 @@ import org.springframework.stereotype.Component;
 @Slf4j
 @Component
 @ConditionalOnProperty(name = "app.mq.type", havingValue = "rocket")
-@RocketMQMessageListener(topic = "${app.mq.rocket.topic:mall-topic}", consumerGroup = "${rocketmq.consumer.group:mall-rocket-group}")
+@RocketMQMessageListener(topic = "${app.mq.rocket.notification-topic}",
+        consumerGroup = "${app.mq.rocket.notification-consumer-group}")
 @RequiredArgsConstructor
-public class NotificationRocketListener implements RocketMQListener<MqMessage> {
+public class NotificationRocketListener implements RocketMQListener<String> {
 
     private final NotificationConsumerDelegate delegate;
 
     @Override
-    public void onMessage(MqMessage message) {
-        log.info("RocketMQ Notification Consumer (Default Topic) received message: {}", message);
-        delegate.handleMessage(message, "ROCKET_DEFAULT_TOPIC");
-    }
-
-    /**
-     * 内部类监听第二个 Topic
-     */
-    @Component
-    @ConditionalOnProperty(name = "app.mq.type", havingValue = "rocket")
-    @RocketMQMessageListener(topic = "${app.mq.rocket.topic2:mall-topic-2}", consumerGroup = "${rocketmq.consumer.group:mall-rocket-group}-2")
-    @RequiredArgsConstructor
-    public static class NotificationRocketListener2 implements RocketMQListener<MqMessage> {
-        private final NotificationConsumerDelegate delegate;
-
-        @Override
-        public void onMessage(MqMessage message) {
-            log.info("RocketMQ Notification Consumer (Topic 2) received message: {}", message);
-            delegate.handleMessage(message, "ROCKET_TOPIC_2");
+    public void onMessage(String message) {
+        log.info("RocketMQ Notification Consumer received message: {}", message);
+        MqMessage mqMessage = JsonUtil.parseObject(message, MqMessage.class);
+        if (mqMessage != null) {
+            delegate.handleMessage(mqMessage, "ROCKET_NOTIFICATION_TOPIC");
         }
     }
 }

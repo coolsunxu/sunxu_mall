@@ -52,7 +52,7 @@ public class TokenHelper extends UserTokenHelper {
     public String generateToken(UserDetails userDetails) {
         try {
             return super.generateToken(userDetails.getUsername(), JsonUtil.toJson(userDetails));
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.error("Failed to serialize user details to JSON", e);
             throw new BusinessException(ErrorCode.INTERNAL_SERVER_ERROR.getCode(), "Failed to generate token");
         }
@@ -122,7 +122,7 @@ public class TokenHelper extends UserTokenHelper {
         try {
             JwtUserEntity jwt = JsonUtil.fromJson(userJson, JwtUserEntity.class);
             return ensureAuthorities(jwt);
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.warn("Failed to parse user details from Redis for user: {}", username, e);
             return null;
         }

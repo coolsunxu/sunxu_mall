@@ -27,20 +27,20 @@ public class TaskConsumerDelegate {
     private final IAsyncTask excelExportTask;
 
     @Async("commonTaskExecutor")
-    public void consume(Long taskId) {
-        if (Objects.isNull(taskId)) {
+    public void consumeByBizKey(String bizKey) {
+        if (Objects.isNull(bizKey)) {
             return;
         }
-        log.info("Consuming task: {}", taskId);
+        log.info("Consuming task by bizKey: {}", bizKey);
 
-        CommonTaskEntity task = commonTaskEntityMapper.selectByPrimaryKey(taskId);
+        CommonTaskEntity task = commonTaskEntityMapper.selectByBizKey(bizKey);
         if (Objects.isNull(task)) {
-            log.warn("Task not found: {}", taskId);
+            log.warn("Task not found by bizKey: {}", bizKey);
             return;
         }
 
         if (!Objects.equals(task.getStatus(), TaskStatusEnum.WAITING.getCode())) {
-            log.info("Task {} is not in WAITING status, skipping. Current status: {}", taskId, task.getStatus());
+            log.info("Task {} is not in WAITING status, skipping. Current status: {}", bizKey, task.getStatus());
             return;
         }
 
@@ -57,7 +57,8 @@ public class TaskConsumerDelegate {
 
             switch (typeEnum) {
                 case EXPORT_EXCEL:
-                    log.info("Processing Excel export task: id={}, bizType={}", task.getId(), task.getBizType());
+                    log.info("Processing Excel export task: id={}, bizKey={}, bizType={}",
+                            task.getId(), task.getBizKey(), task.getBizType());
                     excelExportTask.doTask(task);
                     break;
                 default:
@@ -65,7 +66,7 @@ public class TaskConsumerDelegate {
                     break;
             }
         } catch (Exception e) {
-            log.error("Failed to execute task: id={}", task.getId(), e);
+            log.error("Failed to execute task: id={}, bizKey={}", task.getId(), task.getBizKey(), e);
         } finally {
             AuditContextHolder.clear();
         }

@@ -1,7 +1,7 @@
 package com.example.sunxu_mall.mq.consumer;
 
-import cn.hutool.json.JSONUtil;
 import com.example.sunxu_mall.dto.mq.MqMessage;
+import com.example.sunxu_mall.util.JsonUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -23,15 +23,18 @@ public class NotificationKafkaListener {
 
     private final NotificationConsumerDelegate delegate;
 
-    @KafkaListener(topics = {"${app.mq.kafka.topic:mall-topic}", "${app.mq.kafka.topic2:mall-topic-2}"}, groupId = "${spring.kafka.consumer.group-id:mall-group}")
+    @KafkaListener(topics = "${app.mq.kafka.notification-topic}",
+            groupId = "${app.mq.kafka.notification-consumer-group}")
     public void onMessage(ConsumerRecord<?, ?> record) {
         Optional<?> kafkaMessage = Optional.ofNullable(record.value());
         if (kafkaMessage.isPresent()) {
             Object message = kafkaMessage.get();
             log.info("Kafka Notification Consumer received message (Topic={}): {}", record.topic(), message);
             try {
-                MqMessage mqMessage = JSONUtil.toBean(message.toString(), MqMessage.class);
-                delegate.handleMessage(mqMessage, record.topic());
+                MqMessage mqMessage = JsonUtil.parseObject(message.toString(), MqMessage.class);
+                if (mqMessage != null) {
+                    delegate.handleMessage(mqMessage, record.topic());
+                }
             } catch (Exception e) {
                 log.error("Kafka message parsing failed", e);
             }

@@ -1,6 +1,5 @@
 package com.example.sunxu_mall.util;
 
-import cn.hutool.json.JSONUtil;
 import com.example.sunxu_mall.dto.CursorState;
 import lombok.extern.slf4j.Slf4j;
 
@@ -31,7 +30,7 @@ public class CursorTokenUtil {
             return null;
         }
         try {
-            String json = JSONUtil.toJsonStr(state);
+            String json = JsonUtil.toJsonStr(state);
             return ENCODER.encodeToString(json.getBytes(StandardCharsets.UTF_8));
         } catch (Exception e) {
             log.warn("Failed to encode cursor state", e);
@@ -51,7 +50,7 @@ public class CursorTokenUtil {
         try {
             byte[] decodedBytes = DECODER.decode(token);
             String json = new String(decodedBytes, StandardCharsets.UTF_8);
-            return JSONUtil.toBean(json, CursorState.class);
+            return JsonUtil.parseObject(json, CursorState.class);
         } catch (Exception e) {
             log.warn("Failed to decode cursor token: {}", token, e);
             return null;

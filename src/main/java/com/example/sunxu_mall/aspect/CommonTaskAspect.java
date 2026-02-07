@@ -1,7 +1,8 @@
 package com.example.sunxu_mall.aspect;
 
 import cn.hutool.core.util.ArrayUtil;
-import cn.hutool.json.JSONUtil;
+import cn.hutool.core.util.IdUtil;
+import com.example.sunxu_mall.util.JsonUtil;
 import com.example.sunxu_mall.annotation.ExcelExport;
 import com.example.sunxu_mall.constant.MQConstant;
 import com.example.sunxu_mall.dto.common.CommonTaskRequestDTO;
@@ -55,7 +56,7 @@ public class CommonTaskAspect {
             Object[] arguments = joinPoint.getArgs();
             if (ArrayUtil.isNotEmpty(arguments)) {
                 Object requestParam = arguments[0];
-                builder.paramJson(JSONUtil.toJsonStr(requestParam));
+                builder.paramJson(JsonUtil.toJsonStr(requestParam));
             }
 
             // 填充用户信息
@@ -72,8 +73,8 @@ public class CommonTaskAspect {
             messageProducer.send(
                     MQConstant.MALL_COMMON_TASK_CREATE_TOPIC,
                     MQConstant.TAG_EXCEL_EXPORT_CREATE,
-                    null,
-                    JSONUtil.toJsonStr(dto)
+                    IdUtil.getSnowflakeNextIdStr(),
+                    JsonUtil.toJsonStr(dto)
             );
         }
     }

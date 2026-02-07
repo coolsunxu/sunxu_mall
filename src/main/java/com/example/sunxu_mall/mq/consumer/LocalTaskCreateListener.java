@@ -1,10 +1,10 @@
 package com.example.sunxu_mall.mq.consumer;
 
-import cn.hutool.json.JSONUtil;
 import com.example.sunxu_mall.constant.MQConstant;
 import com.example.sunxu_mall.dto.common.CommonTaskRequestDTO;
 import com.example.sunxu_mall.event.MqEvent;
 import com.example.sunxu_mall.service.common.CommonTaskService;
+import com.example.sunxu_mall.util.JsonUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -36,7 +36,7 @@ public class LocalTaskCreateListener {
         try {
             // 假设 message 是 JSON 字符串
             String jsonStr = String.valueOf(event.getMessage());
-            CommonTaskRequestDTO dto = JSONUtil.toBean(jsonStr, CommonTaskRequestDTO.class);
+            CommonTaskRequestDTO dto = JsonUtil.parseObject(jsonStr, CommonTaskRequestDTO.class);
             commonTaskService.createTaskFromRequest(dto);
         } catch (Exception e) {
             log.warn("Failed to process create task request: {}", event.getMessage(), e);

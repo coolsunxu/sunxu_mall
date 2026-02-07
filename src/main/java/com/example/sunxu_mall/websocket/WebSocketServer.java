@@ -1,8 +1,8 @@
 package com.example.sunxu_mall.websocket;
 
-import cn.hutool.json.JSONUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
+import com.example.sunxu_mall.util.JsonUtil;
 
 import javax.websocket.*;
 import javax.websocket.server.PathParam;
@@ -144,7 +144,7 @@ public class WebSocketServer {
      */
     public static void sendObject(String userId, Object object) {
         if (Objects.nonNull(object)) {
-            sendInfo(userId, JSONUtil.toJsonStr(object));
+            sendInfo(userId, JsonUtil.toJsonStr(object));
         }
     }
 

@@ -1,11 +1,11 @@
 package com.example.sunxu_mall.mq.consumer;
 
-import cn.hutool.json.JSONUtil;
 import com.example.sunxu_mall.dto.mq.MqMessage;
 import com.example.sunxu_mall.dto.websocket.ExportExcelDTO;
 import com.example.sunxu_mall.entity.common.CommonNotifyEntity;
 import com.example.sunxu_mall.enums.TaskTypeEnum;
 import com.example.sunxu_mall.mapper.common.CommonNotifyEntityMapper;
+import com.example.sunxu_mall.util.JsonUtil;
 import com.example.sunxu_mall.websocket.WebSocketServer;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -78,14 +78,14 @@ public class NotificationConsumerDelegate {
             return;
         }
 
-        Long notifyId = parseNotifyId(message.getBusinessKey());
-        if (Objects.isNull(notifyId)) {
+        String bizKey = parseBizKey(message.getBusinessKey());
+        if (StringUtils.isBlank(bizKey)) {
             return;
         }
 
         // 1. 原子抢占推送权
-        if (!tryLockForPush(notifyId)) {
-            log.info("Failed to lock notify for push, notifyId={}, already locked or not ready", notifyId);
+        if (!tryLockForPush(bizKey)) {
+            log.info("Failed to lock notify for push, bizKey={}, already locked or not ready", bizKey);
             return;
         }
 
@@ -93,28 +93,28 @@ public class NotificationConsumerDelegate {
         boolean pushSuccess = false;
         String errorMsg = null;
         try {
-            pushSuccess = doPush(message, notifyId);
+            pushSuccess = doPush(message, bizKey);
         } catch (Exception e) {
             errorMsg = truncateErrorMsg(e.getMessage());
-            log.error("WebSocket push failed, notifyId={}", notifyId, e);
+            log.error("WebSocket push failed, bizKey={}", bizKey, e);
         }
 
         // 3. 更新推送状态
         if (pushSuccess) {
-            markPushSent(notifyId);
+            markPushSent(bizKey);
         } else {
-            handlePushFailure(notifyId, errorMsg);
+            handlePushFailure(bizKey, errorMsg);
         }
     }
 
     /**
      * 解析通知ID
      */
-    private Long parseNotifyId(String businessKey) {
+    private String parseBizKey(String businessKey) {
         try {
-            return Long.valueOf(businessKey);
-        } catch (NumberFormatException e) {
-            log.warn("Invalid businessKey format: {}", businessKey);
+            return businessKey;
+        } catch (Exception e) {
+            log.warn("Invalid businessKey format: {}", businessKey, e);
             return null;
         }
     }
@@ -125,8 +125,8 @@ public class NotificationConsumerDelegate {
      * @param notifyId 通知ID
      * @return true=抢占成功，false=抢占失败
      */
-    private boolean tryLockForPush(Long notifyId) {
-        int rows = commonNotifyEntityMapper.tryLockForPush(notifyId);
+    private boolean tryLockForPush(String bizKey) {
+        int rows = commonNotifyEntityMapper.tryLockForPushByBizKey(bizKey);
         return rows > 0;
     }
 
@@ -137,10 +137,10 @@ public class NotificationConsumerDelegate {
      * @param notifyId 通知ID
      * @return true=推送成功
      */
-    private boolean doPush(MqMessage message, Long notifyId) {
-        ExportExcelDTO dto = JSONUtil.toBean(message.getContent().toString(), ExportExcelDTO.class);
+    private boolean doPush(MqMessage message, String bizKey) {
+        ExportExcelDTO dto = JsonUtil.parseObject(message.getContent().toString(), ExportExcelDTO.class);
         if (Objects.isNull(dto) || Objects.isNull(dto.getUserId())) {
-            log.warn("Invalid ExportExcelDTO or userId is null, notifyId={}", notifyId);
+            log.warn("Invalid ExportExcelDTO or userId is null, bizKey={}", bizKey);
             return false;
         }
 
@@ -151,7 +151,7 @@ public class NotificationConsumerDelegate {
 
         // WebSocket推送
         WebSocketServer.sendObject(String.valueOf(dto.getUserId()), resp);
-        log.info("WebSocket push success, notifyId={}, userId={}", notifyId, dto.getUserId());
+        log.info("WebSocket push success, bizKey={}, userId={}", bizKey, dto.getUserId());
         return true;
     }
 
@@ -160,16 +160,16 @@ public class NotificationConsumerDelegate {
      *
      * @param notifyId 通知ID
      */
-    private void markPushSent(Long notifyId) {
+    private void markPushSent(String bizKey) {
         try {
-            int rows = commonNotifyEntityMapper.markPushSent(notifyId);
+            int rows = commonNotifyEntityMapper.markPushSentByBizKey(bizKey);
             if (rows > 0) {
-                log.debug("Mark push sent success, notifyId={}", notifyId);
+                log.debug("Mark push sent success, bizKey={}", bizKey);
             } else {
-                log.warn("Mark push sent failed, notifyId={}, rows=0", notifyId);
+                log.warn("Mark push sent failed, bizKey={}, rows=0", bizKey);
             }
         } catch (Exception e) {
-            log.error("Mark push sent exception, notifyId={}", notifyId, e);
+            log.error("Mark push sent exception, bizKey={}", bizKey, e);
         }
     }
 
@@ -179,12 +179,12 @@ public class NotificationConsumerDelegate {
      * @param notifyId 通知ID
      * @param errorMsg 错误信息
      */
-    private void handlePushFailure(Long notifyId, String errorMsg) {
+    private void handlePushFailure(String bizKey, String errorMsg) {
         try {
             // 查询当前重试次数
-            CommonNotifyEntity notify = commonNotifyEntityMapper.selectByPrimaryKey(notifyId);
+            CommonNotifyEntity notify = commonNotifyEntityMapper.selectByBizKey(bizKey);
             if (Objects.isNull(notify)) {
-                log.warn("Notify not found, notifyId={}", notifyId);
+                log.warn("Notify not found, bizKey={}", bizKey);
                 return;
             }
 
@@ -193,18 +193,18 @@ public class NotificationConsumerDelegate {
 
             if (currentRetryCount >= maxRetryCount) {
                 // 达到最大重试次数，标记为死信
-                commonNotifyEntityMapper.markPushDead(notifyId, errorMsg);
-                log.warn("Push reached max retry, marked as DEAD, notifyId={}, retryCount={}",
-                        notifyId, currentRetryCount);
+                commonNotifyEntityMapper.markPushDeadByBizKey(bizKey, errorMsg);
+                log.warn("Push reached max retry, marked as DEAD, bizKey={}, retryCount={}",
+                        bizKey, currentRetryCount);
             } else {
                 // 计算下次重试时间（指数退避）
                 LocalDateTime nextRetryTime = calculateNextRetryTime(currentRetryCount);
-                commonNotifyEntityMapper.markPushFailedAndRetry(notifyId, errorMsg, nextRetryTime);
-                log.info("Push failed, scheduled retry, notifyId={}, retryCount={}, nextRetryTime={}",
-                        notifyId, currentRetryCount + 1, nextRetryTime);
+                commonNotifyEntityMapper.markPushFailedAndRetryByBizKey(bizKey, errorMsg, nextRetryTime);
+                log.info("Push failed, scheduled retry, bizKey={}, retryCount={}, nextRetryTime={}",
+                        bizKey, currentRetryCount + 1, nextRetryTime);
             }
         } catch (Exception e) {
-            log.error("Handle push failure exception, notifyId={}", notifyId, e);
+            log.error("Handle push failure exception, bizKey={}", bizKey, e);
         }
     }
 

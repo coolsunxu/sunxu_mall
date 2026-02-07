@@ -2,6 +2,7 @@ package com.example.sunxu_mall.controller.sys;
 
 import com.example.sunxu_mall.dto.mq.MqMessage;
 import com.example.sunxu_mall.mq.producer.MessageProducer;
+import com.example.sunxu_mall.util.JsonUtil;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -29,7 +30,7 @@ public class MqTestController {
         MqMessage message = buildMessage(eventType, content);
         String finalTopic = (topic != null && !topic.isEmpty()) ? topic : com.example.sunxu_mall.constant.MQConstant.MALL_COMMON_TASK_TOPIC;
         
-        messageProducer.send(finalTopic, "TAG_TEST", message.getBusinessKey(), message);
+        messageProducer.send(finalTopic, "TAG_TEST", message.getBusinessKey(), JsonUtil.toJsonStr(message));
         return "MQ消息发送成功(Topic: " + finalTopic + ")";
     }
 

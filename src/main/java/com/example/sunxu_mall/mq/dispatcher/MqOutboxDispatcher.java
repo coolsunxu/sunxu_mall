@@ -1,14 +1,14 @@
 package com.example.sunxu_mall.mq.dispatcher;
 
-import cn.hutool.json.JSONUtil;
 import com.example.sunxu_mall.entity.mq.MqOutboxEntity;
 import com.example.sunxu_mall.mapper.mq.MqOutboxEntityMapper;
 import com.example.sunxu_mall.mq.producer.impl.KafkaMQProducer;
 import com.example.sunxu_mall.mq.producer.impl.RocketMQProducer;
+import com.example.sunxu_mall.util.JsonUtil;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -56,20 +56,15 @@ public class MqOutboxDispatcher {
 
     private final MqOutboxEntityMapper mqOutboxEntityMapper;
 
-    /**
-     * Kafka 发送器（可选注入）
-     */
-    @Autowired(required = false)
-    private KafkaMQProducer kafkaMQProducer;
+    private final ObjectProvider<KafkaMQProducer> kafkaMQProducerProvider;
+    private final ObjectProvider<RocketMQProducer> rocketMQProducerProvider;
 
-    /**
-     * RocketMQ 发送器（可选注入）
-     */
-    @Autowired(required = false)
-    private RocketMQProducer rocketMQProducer;
-
-    public MqOutboxDispatcher(MqOutboxEntityMapper mqOutboxEntityMapper) {
+    public MqOutboxDispatcher(MqOutboxEntityMapper mqOutboxEntityMapper,
+                              ObjectProvider<KafkaMQProducer> kafkaMQProducerProvider,
+                              ObjectProvider<RocketMQProducer> rocketMQProducerProvider) {
         this.mqOutboxEntityMapper = mqOutboxEntityMapper;
+        this.kafkaMQProducerProvider = kafkaMQProducerProvider;
+        this.rocketMQProducerProvider = rocketMQProducerProvider;
     }
 
     /**
@@ -158,7 +153,8 @@ public class MqOutboxDispatcher {
      * 发送到 Kafka
      */
     private boolean sendToKafka(String topic, String key, Object payload) {
-        if (Objects.isNull(kafkaMQProducer)) {
+        KafkaMQProducer kafkaMQProducer = kafkaMQProducerProvider.getIfAvailable();
+        if (kafkaMQProducer == null) {
             log.error("KafkaMQProducer is not available");
             return false;
         }
@@ -170,7 +166,8 @@ public class MqOutboxDispatcher {
      * 发送到 RocketMQ
      */
     private boolean sendToRocket(String topic, String tag, String key, Object payload) {
-        if (Objects.isNull(rocketMQProducer)) {
+        RocketMQProducer rocketMQProducer = rocketMQProducerProvider.getIfAvailable();
+        if (rocketMQProducer == null) {
             log.error("RocketMQProducer is not available");
             return false;
         }
@@ -203,7 +200,7 @@ public class MqOutboxDispatcher {
         // 尝试反序列化为对象
         try {
             Class<?> clazz = Class.forName(payloadClass);
-            return JSONUtil.toBean(payloadJson, clazz);
+            return JsonUtil.parseObject(payloadJson, clazz);
         } catch (ClassNotFoundException e) {
             log.warn("Payload class not found: {}, returning raw JSON", payloadClass);
             return payloadJson;

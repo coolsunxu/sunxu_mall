@@ -33,6 +33,8 @@ public class RocketMQProducer {
     public void send(String topic, String tag, String key, Object message) {
         String destination = topic + ":" + tag;
         log.info("Sending RocketMQ message to [{}], key: {}, payload: {}", destination, key, message);
-        rocketMQTemplate.syncSend(destination, MessageBuilder.withPayload(message).setHeader("KEYS", key).build());
+        Object payload = message == null ? "null" : message;
+        rocketMQTemplate.syncSend(destination,
+                MessageBuilder.withPayload(payload).setHeader("KEYS", key).build());
     }
 }

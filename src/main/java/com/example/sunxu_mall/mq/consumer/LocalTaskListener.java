@@ -30,11 +30,7 @@ public class LocalTaskListener {
     )
     public void onEvent(MqEvent event) {
         log.info("Received local event: key={}, message={}", event.getKey(), event.getMessage());
-        try {
-            Long taskId = Long.valueOf(String.valueOf(event.getMessage()));
-            taskConsumerDelegate.consume(taskId);
-        } catch (NumberFormatException e) {
-            log.error("Invalid task ID format in event message: {}", event.getMessage());
-        }
+        String taskBizKey = String.valueOf(event.getMessage());
+        taskConsumerDelegate.consumeByBizKey(taskBizKey);
     }
 }
