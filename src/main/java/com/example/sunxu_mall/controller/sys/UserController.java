@@ -1,7 +1,7 @@
 package com.example.sunxu_mall.controller.sys;
 
 import com.example.sunxu_mall.annotation.ExcelExport;
-import com.example.sunxu_mall.annotation.NoLogin;
+import com.example.sunxu_mall.annotation.Idempotency;
 import com.example.sunxu_mall.convert.user.UserStructMapper;
 import com.example.sunxu_mall.dto.user.UserCreateDTO;
 import com.example.sunxu_mall.dto.user.UserQueryDTO;
@@ -14,10 +14,11 @@ import com.example.sunxu_mall.vo.user.UserVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
-import javax.servlet.http.HttpServletResponse;
 import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 import java.util.List;
@@ -65,6 +66,7 @@ public class UserController {
      * @param userCreateDTO 用户实体
      */
     @Operation(summary = "添加用户", description = "添加用户")
+    @Idempotency
     @PostMapping("/insert")
     public void insert(@RequestBody @Valid UserCreateDTO userCreateDTO) {
         UserWebEntity userEntity = userStructMapper.toEntity(userCreateDTO);
@@ -79,6 +81,7 @@ public class UserController {
      * @return 影响行数
      */
     @Operation(summary = "修改用户", description = "修改用户")
+    @Idempotency
     @PostMapping("/update")
     public int update(@RequestBody @Valid UserUpdateDTO userUpdateDTO) {
         UserWebEntity userEntity = userStructMapper.toEntity(userUpdateDTO);
@@ -92,6 +95,7 @@ public class UserController {
      * @return 影响行数
      */
     @Operation(summary = "删除用户", description = "删除用户")
+    @Idempotency
     @PostMapping("/deleteByIds")
     public int deleteById(@RequestBody @NotNull List<Long> ids) {
         return userService.deleteByIds(ids);
@@ -105,6 +109,7 @@ public class UserController {
      * @return 影响行数
      */
     @Operation(summary = "重置密码", description = "重置密码")
+    @Idempotency
     @PostMapping("/resetPwd")
     public int resetPwd(@RequestBody @NotNull List<Long> ids) {
         return userService.resetPwd(ids);
@@ -115,6 +120,7 @@ public class UserController {
      */
     @ExcelExport(ExcelBizTypeEnum.USER)
     @Operation(summary = "导出用户数据", description = "导出用户数据")
+    @Idempotency(ttlSeconds = 30)
     @PostMapping("/export")
     public void export(@RequestBody UserQueryDTO userQueryDTO) {
         // Method body is empty as logic is handled by Aspect

@@ -130,4 +130,29 @@ public interface CommonTaskEntityMapper {
     int updateByPrimaryKey(CommonTaskEntity row);
 
     int updateTaskWithVersion(CommonTaskEntity row);
+
+    /**
+     * 根据幂等去重 Key 查询任务
+     *
+     * @param dedupKey 幂等去重 Key
+     * @return 任务实体（含 BLOB 字段）
+     */
+    CommonTaskEntity selectByDedupKey(@Param("dedupKey") String dedupKey);
+
+    /**
+     * 查询进行中的同指纹任务（WAITING/RUNNING）
+     *
+     * @param fingerprint 任务参数指纹
+     * @return 任务实体（含 BLOB 字段）
+     */
+    CommonTaskEntity selectInFlightByFingerprint(@Param("fingerprint") String fingerprint);
+
+    /**
+     * 原子抢占任务执行权：将 status 从 WAITING(0) 改为 RUNNING(1)
+     * 用于消费端防重复执行
+     *
+     * @param bizKey 业务键
+     * @return 影响行数，1=抢占成功，0=已被抢占或状态不对
+     */
+    int tryLockForRunByBizKey(@Param("bizKey") String bizKey);
 }

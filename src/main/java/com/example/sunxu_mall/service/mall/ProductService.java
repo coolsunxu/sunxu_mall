@@ -23,7 +23,7 @@ import static com.example.sunxu_mall.errorcode.ErrorCode.*;
 /**
  * 商品服务类
  * 负责商品的增删改查、商品组管理、属性管理、图片管理等核心业务逻辑
- * 
+ *
  * @author sunxu
  * @since 1.0.0
  */
@@ -35,12 +35,12 @@ public class ProductService extends BaseService<ProductEntity, ProductQueryDTO> 
      * 商品初始版本号
      */
     private static final int INITIAL_VERSION = 1;
-    
+
     /**
      * 图片排序初始值
      */
     private static final int INITIAL_SORT = 1;
-    
+
     /**
      * 轮播图类型标识
      */
@@ -129,16 +129,16 @@ public class ProductService extends BaseService<ProductEntity, ProductQueryDTO> 
     public ProductEntity createProduct(CreateProductDTO dto) {
         // 1. 查找或创建商品组
         Long productGroupId = findOrCreateProductGroup(dto);
-        
+
         // 2. 创建商品实体
         ProductEntity product = createProductEntity(dto, productGroupId);
         Long productId = product.getId();
-        
+
         // 3. 保存关联数据
         saveProductDetail(productId, dto.getDetail());
         saveSkuAttributes(productId, dto.getSkuAttributes());
         saveProductPhotos(productId, dto.getPhotos());
-        
+
         return product;
     }
 
@@ -151,7 +151,7 @@ public class ProductService extends BaseService<ProductEntity, ProductQueryDTO> 
      */
     private Long findOrCreateProductGroup(CreateProductDTO dto) {
         String groupHash = generateGroupHash(dto.getCategoryId(), dto.getUnitId(), dto.getSpuAttributes());
-        
+
         // 查询是否已存在相同的商品组
         MallProductGroupEntityExample groupExample = new MallProductGroupEntityExample();
         groupExample.createCriteria()
@@ -187,7 +187,7 @@ public class ProductService extends BaseService<ProductEntity, ProductQueryDTO> 
      * 保存SPU属性
      *
      * @param productGroupId 商品组ID
-     * @param spuAttributes SPU属性列表
+     * @param spuAttributes  SPU属性列表
      */
     private void saveSpuAttributes(Long productGroupId, List<CreateProductAttributeDTO> spuAttributes) {
         if (CollectionUtils.isEmpty(spuAttributes)) {
@@ -209,17 +209,17 @@ public class ProductService extends BaseService<ProductEntity, ProductQueryDTO> 
      * 创建商品实体
      * 验证商品是否已存在，然后创建新商品记录
      *
-     * @param dto 创建商品请求DTO
+     * @param dto            创建商品请求DTO
      * @param productGroupId 商品组ID
      * @return 创建成功的商品实体
      * @throws BusinessException 当商品规格已存在时抛出资源冲突异常
      */
     private ProductEntity createProductEntity(CreateProductDTO dto, Long productGroupId) {
         String productHash = generateProductHash(productGroupId, dto.getBrandId(), dto.getSkuAttributes());
-        
+
         // 验证商品是否已存在
         checkProductNotExists(productGroupId, dto.getBrandId(), productHash);
-        
+
         // 创建商品实体
         ProductEntity product = ProductEntity.builder()
                 .categoryId(dto.getCategoryId())
@@ -236,7 +236,7 @@ public class ProductService extends BaseService<ProductEntity, ProductQueryDTO> 
                 .isDel(false)
                 .build();
         productMapper.insertSelective(product);
-        
+
         return product;
     }
 
@@ -244,8 +244,8 @@ public class ProductService extends BaseService<ProductEntity, ProductQueryDTO> 
      * 检查商品是否已存在
      *
      * @param productGroupId 商品组ID
-     * @param brandId 品牌ID
-     * @param productHash 商品哈希值
+     * @param brandId        品牌ID
+     * @param productHash    商品哈希值
      * @throws BusinessException 当商品已存在时抛出异常
      */
     private void checkProductNotExists(Long productGroupId, Long brandId, String productHash) {
@@ -255,7 +255,7 @@ public class ProductService extends BaseService<ProductEntity, ProductQueryDTO> 
                 .andBrandIdEqualTo(brandId)
                 .andHashEqualTo(productHash)
                 .andIsDelEqualTo(false);
-        
+
         if (productMapper.countByExample(productExample) > 0) {
             throw new BusinessException(RESOURCE_CONFLICT.getCode(), "该规格商品已存在");
         }
@@ -265,7 +265,7 @@ public class ProductService extends BaseService<ProductEntity, ProductQueryDTO> 
      * 保存商品详情
      *
      * @param productId 商品ID
-     * @param detail 商品详情内容
+     * @param detail    商品详情内容
      */
     private void saveProductDetail(Long productId, String detail) {
         if (StringUtils.isBlank(detail)) {
@@ -283,7 +283,7 @@ public class ProductService extends BaseService<ProductEntity, ProductQueryDTO> 
     /**
      * 保存SKU属性
      *
-     * @param productId 商品ID
+     * @param productId     商品ID
      * @param skuAttributes SKU属性列表
      */
     private void saveSkuAttributes(Long productId, List<CreateProductAttributeDTO> skuAttributes) {
@@ -306,7 +306,7 @@ public class ProductService extends BaseService<ProductEntity, ProductQueryDTO> 
      * 保存商品图片
      *
      * @param productId 商品ID
-     * @param photos 图片URL列表
+     * @param photos    图片URL列表
      */
     private void saveProductPhotos(Long productId, List<String> photos) {
         if (CollectionUtils.isEmpty(photos)) {
@@ -333,8 +333,8 @@ public class ProductService extends BaseService<ProductEntity, ProductQueryDTO> 
      * 基于分类ID、单位ID和SPU属性列表生成唯一哈希
      *
      * @param categoryId 分类ID
-     * @param unitId 单位ID
-     * @param attrs SPU属性列表
+     * @param unitId     单位ID
+     * @param attrs      SPU属性列表
      * @return MD5哈希字符串
      */
     private String generateGroupHash(Long categoryId, Long unitId, List<CreateProductAttributeDTO> attrs) {
@@ -347,7 +347,7 @@ public class ProductService extends BaseService<ProductEntity, ProductQueryDTO> 
      *
      * @param groupId 商品组ID
      * @param brandId 品牌ID
-     * @param attrs SKU属性列表
+     * @param attrs   SKU属性列表
      * @return MD5哈希字符串
      */
     private String generateProductHash(Long groupId, Long brandId, List<CreateProductAttributeDTO> attrs) {
@@ -359,7 +359,7 @@ public class ProductService extends BaseService<ProductEntity, ProductQueryDTO> 
      * 对属性列表按ID排序后生成MD5哈希，确保相同属性组合生成相同哈希
      *
      * @param prefix 哈希前缀（如分类:单位 或 组:品牌）
-     * @param attrs 属性列表
+     * @param attrs  属性列表
      * @return MD5哈希字符串
      */
     private String generateAttrHash(String prefix, List<CreateProductAttributeDTO> attrs) {
@@ -515,15 +515,12 @@ public class ProductService extends BaseService<ProductEntity, ProductQueryDTO> 
      */
     private void validateDomainRules(ProductEntity current, UpdateProductDTO request) {
         // 校验：剩余数量不能大于总数量
-        Integer newQuantity = Objects.nonNull(request.getQuantity()) 
-                ? request.getQuantity() 
+        Integer newQuantity = Objects.nonNull(request.getQuantity()) ? request.getQuantity()
                 : current.getQuantity();
-        Integer newRemainQuantity = Objects.nonNull(request.getRemainQuantity()) 
-                ? request.getRemainQuantity() 
+        Integer newRemainQuantity = Objects.nonNull(request.getRemainQuantity()) ? request.getRemainQuantity()
                 : current.getRemainQuantity();
 
-        if (Objects.nonNull(newQuantity) 
-                && Objects.nonNull(newRemainQuantity) 
+        if (Objects.nonNull(newQuantity) && Objects.nonNull(newRemainQuantity)
                 && newRemainQuantity > newQuantity) {
             throw new BusinessException(PARAMETER_VALIDATION_ERROR.getCode(),
                     "剩余数量不能大于总数量");
@@ -577,7 +574,7 @@ public class ProductService extends BaseService<ProductEntity, ProductQueryDTO> 
      * - 有 id 且 deleted!=true：更新属性值
      * - 无 id：新增属性
      *
-     * @param productId 商品ID
+     * @param productId    商品ID
      * @param attrRequests 属性更新请求列表
      */
     private void updateProductAttributesDiff(Long productId,
@@ -599,7 +596,7 @@ public class ProductService extends BaseService<ProductEntity, ProductQueryDTO> 
                 // 更新或删除
                 ProductAttributeEntity existing = existingMap.get(attrReq.getId());
                 if (Objects.isNull(existing)) {
-                    log.warn("商品属性不存在，attributeId={}, productId={}, 跳过处理", 
+                    log.warn("商品属性不存在，attributeId={}, productId={}, 跳过处理",
                             attrReq.getId(), productId);
                     continue;
                 }

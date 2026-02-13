@@ -1,6 +1,7 @@
 package com.example.sunxu_mall.controller.mall;
 
 import com.example.sunxu_mall.annotation.ExcelExport;
+import com.example.sunxu_mall.annotation.Idempotency;
 import com.example.sunxu_mall.convert.mall.ProductStructMapper;
 import com.example.sunxu_mall.dto.mall.CreateProductDTO;
 import com.example.sunxu_mall.dto.mall.ProductQueryDTO;
@@ -48,6 +49,7 @@ public class ProductController {
      * @return 新增后的商品信息
      */
     @Operation(summary = "新增商品", description = "创建新商品，涉及商品组、属性、详情等多个表的写入")
+    @Idempotency
     @PostMapping
     public ResponseEntity<ProductVO> create(@Valid @RequestBody CreateProductDTO request) {
         ProductEntity created = productService.createProduct(request);
@@ -91,6 +93,7 @@ public class ProductController {
             @ApiResponse(responseCode = "404", description = "商品不存在"),
             @ApiResponse(responseCode = "409", description = "版本冲突，数据已被其他用户修改，请刷新后重试")
     })
+    @Idempotency
     @PutMapping("/{id}")
     public ResponseEntity<ProductVO> update(
             @Parameter(description = "商品ID", required = true)
@@ -104,6 +107,7 @@ public class ProductController {
      * 删除商品（软删除）
      */
     @Operation(summary = "删除商品", description = "软删除商品，并级联软删详情/属性/图片等关联数据")
+    @Idempotency
     @DeleteMapping("/{id}")
     public ResponseEntity<Boolean> delete(
             @Parameter(description = "商品ID", required = true)
@@ -118,6 +122,7 @@ public class ProductController {
      */
     @ExcelExport(ExcelBizTypeEnum.PRODUCT)
     @Operation(summary = "导出商品数据", description = "导出商品数据")
+    @Idempotency(ttlSeconds = 30)
     @PostMapping("/export")
     public void export(@RequestBody ProductQueryDTO productQueryDTO) {
         // Method body is empty as logic is handled by Aspect

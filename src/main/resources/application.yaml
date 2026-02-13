@@ -52,7 +52,7 @@ spring:
 
 # RocketMQ 配置
 rocketmq:
-  name-server: 127.0.0.1:9876
+  name-server: 117.72.88.11:9876
   producer:
     group: mall-rocket-producer-group
     send-message-timeout: 3000
@@ -119,6 +119,17 @@ mall:
     permit-web-socket: true
     # 额外需要放行的 URL 模式
     permit-urls: []
+  # 幂等/防重复提交配置
+  idempotency:
+    enabled: true
+    header-name: Idempotency-Key
+    default-ttl-seconds: 10
+    key-prefix: "idem:"
+    exclude-paths:
+      - /swagger-ui/**
+      - /v3/api-docs/**
+      - /files/**
+      - /sys/mq/**
   # 性能监控配置
   performance:
     # 是否启用性能日志

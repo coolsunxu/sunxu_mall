@@ -20,6 +20,17 @@ public class CommonTaskRequestDTO implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
+     * 幂等去重 Key（由切面基于 userId + bizType + paramJson 生成）
+     * 用于任务创建去重：同一 dedupKey 只创建一次任务
+     */
+    private String dedupKey;
+
+    /**
+     * 任务参数指纹（userId + bizType + paramJson 的摘要）
+     */
+    private String fingerprint;
+
+    /**
      * 业务类型
      */
     private ExcelBizTypeEnum bizType;

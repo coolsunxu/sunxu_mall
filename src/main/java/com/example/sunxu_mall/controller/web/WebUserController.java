@@ -1,11 +1,11 @@
 package com.example.sunxu_mall.controller.web;
 
+import com.example.sunxu_mall.annotation.Idempotency;
 import com.example.sunxu_mall.annotation.NoLogin;
 import com.example.sunxu_mall.entity.auth.AuthUserEntity;
 import com.example.sunxu_mall.entity.auth.CaptchaEntity;
 import com.example.sunxu_mall.entity.auth.JwtUserEntity;
 import com.example.sunxu_mall.entity.auth.TokenEntity;
-import com.example.sunxu_mall.entity.sys.web.UserWebEntity;
 import com.example.sunxu_mall.service.sys.UserService;
 import com.example.sunxu_mall.util.SecurityUtil;
 import io.swagger.v3.oas.annotations.Operation;
@@ -43,11 +43,11 @@ public class WebUserController {
      * User phone login
      *
      * @param authUserEntity User entity
-     * @param request HttpServletRequest
      * @return Affected rows
      */
     @NoLogin
     @Operation(summary = "用户登录", description = "用户通过手机号登录")
+    @Idempotency
     @PostMapping("/login")
     public TokenEntity login(@Valid @RequestBody AuthUserEntity authUserEntity) {
         return userService.login(authUserEntity);
@@ -55,6 +55,7 @@ public class WebUserController {
 
     @NoLogin
     @Operation(summary = "用户退出登录", description = "用户退出登录")
+    @Idempotency
     @PostMapping("/logout")
     public void logout(HttpServletRequest request) {
         userService.logout(request);

@@ -15,6 +15,7 @@ import java.util.UUID;
 /**
  * 链路追踪过滤器
  * 负责生成或获取 traceId 并放入 MDC
+ * @author sunxu
  */
 @Slf4j
 @Component

@@ -15,6 +15,7 @@ import com.example.sunxu_mall.mq.producer.MessageProducer;
 import com.example.sunxu_mall.util.BeanCopyUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
@@ -71,9 +72,7 @@ public class CommonTaskService {
     }
 
     /**
-     * 根据请求创建任务（异步削峰用）
-     *
-     * @param dto 任务请求 DTO
+     * 根据请求创建任务（异步削峰用，同指纹仅允许一个进行中任务）
      */
     @Transactional(rollbackFor = Exception.class)
     public void createTaskFromRequest(CommonTaskRequestDTO dto) {
@@ -87,22 +86,61 @@ public class CommonTaskService {
                 AuditContextHolder.set(new AuditUser(dto.getUserId(), dto.getUserName()));
             }
 
-            ExcelBizTypeEnum bizType = dto.getBizType();
-            CommonTaskEntity commonTaskEntity = CommonTaskEntity.builder()
-                    .bizKey(IdUtil.getSnowflakeNextIdStr())
-                    .name(String.format("Export %s Data", bizType.getDesc()))
-                    .status(TaskStatusEnum.WAITING.getCode())
-                    .failureCount((byte) 0)
-                    .type(TaskTypeEnum.EXPORT_EXCEL.getCode())
-                    .bizType(bizType.getCode())
-                    .requestParam(dto.getParamJson())
-                    .isDel(false)
-                    .version(0)
-                    .build();
+            if (isDuplicateInFlightTask(dto.getFingerprint())) {
+                return;
+            }
 
-            this.insert(commonTaskEntity);
+            CommonTaskEntity task = buildTaskEntity(dto);
+            insertTaskSafely(task);
         } finally {
             AuditContextHolder.clear();
+        }
+    }
+
+    /**
+     * 判断是否存在进行中的同指纹任务（WAITING/RUNNING）
+     */
+    private boolean isDuplicateInFlightTask(String fingerprint) {
+        if (Objects.isNull(fingerprint) || fingerprint.trim().isEmpty()) {
+            return false;
+        }
+        CommonTaskEntity existing = commonTaskEntityMapper.selectInFlightByFingerprint(fingerprint);
+        if (Objects.nonNull(existing)) {
+            log.info("Duplicate in-flight task detected, fingerprint={}, existingTaskId={}",
+                    fingerprint, existing.getId());
+            return true;
+        }
+        return false;
+    }
+
+    private CommonTaskEntity buildTaskEntity(CommonTaskRequestDTO dto) {
+        ExcelBizTypeEnum bizType = dto.getBizType();
+        return CommonTaskEntity.builder()
+                .bizKey(IdUtil.getSnowflakeNextIdStr())
+                .dedupKey(dto.getDedupKey())
+                .fingerprint(dto.getFingerprint())
+                .name(String.format("Export %s Data", bizType.getDesc()))
+                .status(TaskStatusEnum.WAITING.getCode())
+                .failureCount((byte) 0)
+                .type(TaskTypeEnum.EXPORT_EXCEL.getCode())
+                .bizType(bizType.getCode())
+                .requestParam(dto.getParamJson())
+                .isDel(false)
+                .version(0)
+                .build();
+    }
+
+    /**
+     * 安全插入任务：捕获唯一键冲突异常（DB 兜底幂等）
+     *
+     * @param task 任务实体
+     */
+    private void insertTaskSafely(CommonTaskEntity task) {
+        try {
+            this.insert(task);
+        } catch (DuplicateKeyException e) {
+            log.info("Task insert duplicate key conflict, dedupKey={}, bizKey={}, skipping",
+                    task.getDedupKey(), task.getBizKey());
         }
     }
 
