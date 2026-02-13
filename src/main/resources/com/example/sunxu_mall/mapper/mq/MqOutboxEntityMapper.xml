@@ -22,10 +22,10 @@
         retry_count, next_retry_time, error_msg, create_time, update_time
     </sql>
 
-    <!-- 插入Outbox记录 -->
+    <!-- 插入Outbox记录（幂等：相同 topic+tag+msg_key 不重复插入） -->
     <insert id="insert" parameterType="com.example.sunxu_mall.entity.mq.MqOutboxEntity"
             useGeneratedKeys="true" keyProperty="id">
-        INSERT INTO mq_outbox (topic, tag, msg_key, payload_json, payload_class,
+        INSERT IGNORE INTO mq_outbox (topic, tag, msg_key, payload_json, payload_class,
                                status, retry_count, next_retry_time, error_msg, create_time, update_time)
         VALUES (#{topic,jdbcType=VARCHAR}, #{tag,jdbcType=VARCHAR}, #{msgKey,jdbcType=VARCHAR},
                 #{payloadJson,jdbcType=LONGVARCHAR}, #{payloadClass,jdbcType=VARCHAR},

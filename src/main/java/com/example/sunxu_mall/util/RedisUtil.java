@@ -1,13 +1,17 @@
 package com.example.sunxu_mall.util;
 
 
-import org.redisson.api.RBucket;
 import org.redisson.api.RAtomicLong;
+import org.redisson.api.RBucket;
 import org.redisson.api.RedissonClient;
 import org.springframework.stereotype.Component;
 
+import java.time.Duration;
 import java.util.concurrent.TimeUnit;
 
+/**
+ * @author sunxu
+ */
 @Component
 public class RedisUtil {
     private final RedissonClient redissonClient;
@@ -96,6 +100,21 @@ public class RedisUtil {
     public long decrBy(String key, long delta) {
         RAtomicLong atomicLong = redissonClient.getAtomicLong(key);
         return atomicLong.addAndGet(-delta);
+    }
+
+    /**
+     * 仅当键不存在时设置值（原子操作，用于分布式锁/幂等）
+     *
+     * @param key        键
+     * @param value      值
+     * @param expireTime 过期时间
+     * @param timeUnit   时间单位
+     * @return true=设置成功（键原先不存在），false=键已存在
+     */
+    public boolean setIfAbsent(String key, String value, long expireTime, TimeUnit timeUnit) {
+        RBucket<String> bucket = redissonClient.getBucket(key);
+        Duration duration = Duration.ofMillis(timeUnit.toMillis(expireTime));
+        return bucket.setIfAbsent(value, duration);
     }
 
     /**

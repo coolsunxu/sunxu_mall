@@ -37,6 +37,7 @@ public enum ErrorCode {
     USER_NOT_EXIST(40401, "User Not Found", 404),
     PRODUCT_NOT_EXIST(40402, "Product Not Found", 404),
     RESOURCE_CONFLICT(40900, "Resource Conflict", 409),
+    DUPLICATE_SUBMIT(40901, "Duplicate Submit, please do not resubmit", 409),
     OPERATION_FAILED(50001, "Operation Failed", 500),
     DATA_CONVERSION_ERROR(50002, "Data Conversion Error", 500),
     

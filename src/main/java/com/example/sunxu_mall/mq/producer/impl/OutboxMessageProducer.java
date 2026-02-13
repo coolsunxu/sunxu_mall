@@ -10,6 +10,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnExpression;
 import org.springframework.stereotype.Component;
 
+import java.util.Objects;
+
 /**
  * Outbox 模式的消息生产者（用于 Kafka/RocketMQ）
  * <p>
@@ -43,11 +45,15 @@ public class OutboxMessageProducer implements MessageProducer {
                 .retryCount(0)
                 .build();
 
-        // 插入 Outbox 表（在当前事务内）
-        mqOutboxEntityMapper.insert(outbox);
+        // INSERT IGNORE：相同 (topic,tag,msg_key) 不重复插入
+        int rows = mqOutboxEntityMapper.insert(outbox);
 
-        log.info("Outbox message saved, id={}, topic={}, tag={}, key={}, payloadClass={}",
-                outbox.getId(), topic, tag, key, payloadClass);
+        if (rows > 0 && Objects.nonNull(outbox.getId()) && outbox.getId() > 0) {
+            log.info("Outbox message saved, id={}, topic={}, tag={}, key={}, payloadClass={}",
+                    outbox.getId(), topic, tag, key, payloadClass);
+        } else {
+            log.info("Outbox message already exists (dedup), topic={}, tag={}, key={}", topic, tag, key);
+        }
     }
 
     /**
@@ -57,7 +63,7 @@ public class OutboxMessageProducer implements MessageProducer {
      * @return JSON 字符串
      */
     private String serializePayload(Object message) {
-        if (message == null) {
+        if (Objects.isNull(message)) {
             return "null";
         }
         if (message instanceof String) {
@@ -76,7 +82,7 @@ public class OutboxMessageProducer implements MessageProducer {
      * @return 类名
      */
     private String getPayloadClass(Object message) {
-        if (message == null) {
+        if (Objects.isNull(message)) {
             return "null";
         }
         if (isPrimitiveWrapper(message)) {

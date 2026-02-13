@@ -1,5 +1,6 @@
 package com.example.sunxu_mall.controller.mall;
 
+import com.example.sunxu_mall.annotation.Idempotency;
 import com.example.sunxu_mall.dto.mall.AttributeValueQueryDTO;
 import com.example.sunxu_mall.dto.mall.CreateAttributeValueDTO;
 import com.example.sunxu_mall.dto.mall.UpdateAttributeValueDTO;
@@ -38,6 +39,7 @@ public class AttributeValueController {
     }
 
     @Operation(summary = "新增属性值", description = "新增商品属性值")
+    @Idempotency
     @PostMapping("/insert")
     public Map<String, Object> insert(@RequestBody CreateAttributeValueDTO createDTO) {
         boolean result = attributeValueService.insert(createDTO);
@@ -47,6 +49,7 @@ public class AttributeValueController {
     }
 
     @Operation(summary = "更新属性值", description = "更新商品属性值")
+    @Idempotency
     @PostMapping("/update")
     public Map<String, Object> update(@RequestBody UpdateAttributeValueDTO updateDTO) {
         boolean result = attributeValueService.update(updateDTO);
@@ -56,6 +59,7 @@ public class AttributeValueController {
     }
 
     @Operation(summary = "批量删除属性值", description = "根据 ID 列表批量删除商品属性值")
+    @Idempotency
     @PostMapping("/deleteByIds")
     public Map<String, Object> deleteByIds(@RequestBody List<Long> ids) {
         boolean result = attributeValueService.deleteByIds(ids);

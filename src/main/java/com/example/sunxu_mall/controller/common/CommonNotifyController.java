@@ -1,5 +1,6 @@
 package com.example.sunxu_mall.controller.common;
 
+import com.example.sunxu_mall.annotation.Idempotency;
 import com.example.sunxu_mall.context.AuditUser;
 import com.example.sunxu_mall.context.AuditUserProvider;
 import com.example.sunxu_mall.service.common.CommonNotifyService;
@@ -37,6 +38,7 @@ public class CommonNotifyController {
      * @param notifyId 通知ID
      */
     @Operation(summary = "标记通知为已读", description = "用户阅读通知后调用此接口标记为已读状态")
+    @Idempotency
     @PostMapping("/{notifyId}/read")
     public void markAsRead(
             @Parameter(description = "通知ID", required = true)
@@ -50,6 +52,7 @@ public class CommonNotifyController {
      * 标记所有通知为已读
      */
     @Operation(summary = "标记所有通知为已读", description = "用户点击通知中心后调用此接口，将所有未读通知标记为已读")
+    @Idempotency
     @PostMapping("/read-all")
     public int markAllAsRead() {
         AuditUser currentUser = AuditUserProvider.getCurrentUserOrNull();

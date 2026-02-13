@@ -3,7 +3,6 @@ package com.example.sunxu_mall.mq.consumer;
 import com.example.sunxu_mall.context.AuditContextHolder;
 import com.example.sunxu_mall.context.AuditUser;
 import com.example.sunxu_mall.entity.common.CommonTaskEntity;
-import com.example.sunxu_mall.enums.TaskStatusEnum;
 import com.example.sunxu_mall.enums.TaskTypeEnum;
 import com.example.sunxu_mall.mapper.common.CommonTaskEntityMapper;
 import com.example.sunxu_mall.service.task.IAsyncTask;
@@ -26,6 +25,11 @@ public class TaskConsumerDelegate {
     private final CommonTaskEntityMapper commonTaskEntityMapper;
     private final IAsyncTask excelExportTask;
 
+    /**
+     * 消费任务：通过原子抢占（WAITING→RUNNING）保证同一任务只被执行一次
+     *
+     * @param bizKey 任务业务键
+     */
     @Async("commonTaskExecutor")
     public void consumeByBizKey(String bizKey) {
         if (Objects.isNull(bizKey)) {
@@ -33,42 +37,58 @@ public class TaskConsumerDelegate {
         }
         log.info("Consuming task by bizKey: {}", bizKey);
 
-        CommonTaskEntity task = commonTaskEntityMapper.selectByBizKey(bizKey);
-        if (Objects.isNull(task)) {
-            log.warn("Task not found by bizKey: {}", bizKey);
+        // 原子抢占执行权：CAS 将 status 从 WAITING 改为 RUNNING
+        int rows = commonTaskEntityMapper.tryLockForRunByBizKey(bizKey);
+        if (rows == 0) {
+            log.info("Task {} lock failed (not WAITING or already locked), skipping", bizKey);
             return;
         }
 
-        if (!Objects.equals(task.getStatus(), TaskStatusEnum.WAITING.getCode())) {
-            log.info("Task {} is not in WAITING status, skipping. Current status: {}", bizKey, task.getStatus());
+        // 抢占成功，查询完整任务信息
+        CommonTaskEntity task = commonTaskEntityMapper.selectByBizKey(bizKey);
+        if (Objects.isNull(task)) {
+            log.warn("Task not found by bizKey after lock: {}", bizKey);
             return;
         }
 
         try {
-            if (Objects.nonNull(task.getCreateUserId()) && Objects.nonNull(task.getCreateUserName())) {
-                AuditContextHolder.set(new AuditUser(task.getCreateUserId(), task.getCreateUserName()));
-            }
-
-            TaskTypeEnum typeEnum = TaskTypeEnum.getByCode(task.getType());
-            if (Objects.isNull(typeEnum)) {
-                log.warn("Unknown task type: {}", task.getType());
-                return;
-            }
-
-            switch (typeEnum) {
-                case EXPORT_EXCEL:
-                    log.info("Processing Excel export task: id={}, bizKey={}, bizType={}",
-                            task.getId(), task.getBizKey(), task.getBizType());
-                    excelExportTask.doTask(task);
-                    break;
-                default:
-                    log.debug("No handler for task type: {}", typeEnum);
-                    break;
-            }
+            setAuditContext(task);
+            dispatchTask(task);
         } catch (Exception e) {
             log.error("Failed to execute task: id={}, bizKey={}", task.getId(), task.getBizKey(), e);
         } finally {
             AuditContextHolder.clear();
+        }
+    }
+
+    /**
+     * 设置审计上下文
+     */
+    private void setAuditContext(CommonTaskEntity task) {
+        if (Objects.nonNull(task.getCreateUserId()) && Objects.nonNull(task.getCreateUserName())) {
+            AuditContextHolder.set(new AuditUser(task.getCreateUserId(), task.getCreateUserName()));
+        }
+    }
+
+    /**
+     * 根据任务类型分发执行
+     */
+    private void dispatchTask(CommonTaskEntity task) {
+        TaskTypeEnum typeEnum = TaskTypeEnum.getByCode(task.getType());
+        if (Objects.isNull(typeEnum)) {
+            log.warn("Unknown task type: {}", task.getType());
+            return;
+        }
+
+        switch (typeEnum) {
+            case EXPORT_EXCEL:
+                log.info("Processing Excel export task: id={}, bizKey={}, bizType={}",
+                        task.getId(), task.getBizKey(), task.getBizType());
+                excelExportTask.doTask(task);
+                break;
+            default:
+                log.debug("No handler for task type: {}", typeEnum);
+                break;
         }
     }
 }
