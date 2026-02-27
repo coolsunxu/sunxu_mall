@@ -1,10 +1,11 @@
 # Redisson配置文件
 singleServerConfig:
-  address: "redis://127.0.0.1:6379"
+  address: "${REDIS_ADDRESS:redis://127.0.0.1:6379}"
+  password: "${REDIS_PASSWORD:}"
   connectTimeout: 10000
   connectionMinimumIdleSize: 10
   connectionPoolSize: 64
-  database: 5
+  database: ${REDIS_DATABASE:5}
   dnsMonitoringInterval: 5000
   idleConnectionTimeout: 10000
   timeout: 3000
