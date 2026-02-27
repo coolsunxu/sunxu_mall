@@ -117,6 +117,7 @@ application-secret.yaml
 application-secret.yml
 src/main/resources/application-secret.yaml
 src/main/resources/application-secret.yml
+docker-compose.yml
 
 susan_mall_web
 
