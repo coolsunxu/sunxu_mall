@@ -41,7 +41,7 @@ spring:
       add-mappings: false
   # Kafka 配置
   kafka:
-    bootstrap-servers: 8.153.105.103:9092
+    bootstrap-servers: coolsunxu.cn:9092
     producer:
       acks: all
       retries: 3
